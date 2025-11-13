@@ -1,10 +1,10 @@
-file,tracks,samples,pairs_found,type_histogram
-individual_files_training_segment-10107710434105775874_760_000_780_000_with_camera_labels.tfrecord,42,4018,18,"{'Vehicle': 2749, 'Sign': 1269}"
-individual_files_training_segment-1022527355599519580_4866_960_4886_960_with_camera_labels.tfrecord,220,32908,697,"{'Pedestrian': 16602, 'Vehicle': 11877, 'Sign': 4429}"
-individual_files_training_segment-10226164909075980558_180_000_200_000_with_camera_labels.tfrecord,149,14627,172,"{'Vehicle': 7441, 'Pedestrian': 3505, 'Sign': 3681}"
-individual_files_training_segment-10444454289801298640_4360_000_4380_000_with_camera_labels.tfrecord,274,21614,473,"{'Vehicle': 7397, 'Sign': 7328, 'Pedestrian': 6826, 'Cyclist': 63}"
-individual_files_training_segment-10500357041547037089_1474_800_1494_800_with_camera_labels.tfrecord,180,30644,300,"{'Vehicle': 9307, 'Sign': 20624, 'Pedestrian': 713}"
-individual_files_training_segment-10526338824408452410_5714_660_5734_660_with_camera_labels.tfrecord,36,4538,16,"{'Vehicle': 1781, 'Pedestrian': 631, 'Sign': 2126}"
-individual_files_training_segment-10599748131695282446_1380_000_1400_000_with_camera_labels.tfrecord,130,20324,322,"{'Vehicle': 9215, 'Pedestrian': 8178, 'Sign': 2931}"
-individual_files_training_segment-10664823084372323928_4360_000_4380_000_with_camera_labels.tfrecord,268,32349,903,"{'Pedestrian': 15439, 'Sign': 7920, 'Vehicle': 8748, 'Cyclist': 242}"
-individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord,137,7271,92,"{'Vehicle': 3166, 'Sign': 3136, 'Pedestrian': 969}"
+file,num_tracks,num_samples,num_bins,num_pairs,center_thresh,obb_thresh,mode
+individual_files_training_segment-10107710434105775874_760_000_780_000_with_camera_labels.tfrecord,42,4018,198,10,10.0,2.5,A
+individual_files_training_segment-1022527355599519580_4866_960_4886_960_with_camera_labels.tfrecord,220,32908,197,49,10.0,2.5,A
+individual_files_training_segment-10226164909075980558_180_000_200_000_with_camera_labels.tfrecord,149,14627,198,81,10.0,2.5,A
+individual_files_training_segment-10444454289801298640_4360_000_4380_000_with_camera_labels.tfrecord,274,21614,198,86,10.0,2.5,A
+individual_files_training_segment-10500357041547037089_1474_800_1494_800_with_camera_labels.tfrecord,180,30644,199,67,10.0,2.5,A
+individual_files_training_segment-10526338824408452410_5714_660_5734_660_with_camera_labels.tfrecord,36,4538,198,2,10.0,2.5,A
+individual_files_training_segment-10599748131695282446_1380_000_1400_000_with_camera_labels.tfrecord,130,20324,197,86,10.0,2.5,A
+individual_files_training_segment-10664823084372323928_4360_000_4380_000_with_camera_labels.tfrecord,268,32349,198,130,10.0,2.5,A
+individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord,137,7271,197,31,10.0,2.5,A

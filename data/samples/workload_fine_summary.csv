@@ -1,0 +1,10 @@
+file,ego_oid,n_pairs,n_checks_total,n_checks_ego,n_near_total,n_near_ego,refine_window_s,fine_dt_s,thresh_obb_fine_m
+individual_files_training_segment-10107710434105775874_760_000_780_000_with_camera_labels.tfrecord,I8qnhjM2SWftNqsGZ4X2LA,10,1010,101,967,101,1.0,0.01,2.5
+individual_files_training_segment-1022527355599519580_4866_960_4886_960_with_camera_labels.tfrecord,r_pZO4JbVZtYDjl29kk4dw,49,4949,0,4767,0,1.0,0.01,2.5
+individual_files_training_segment-10226164909075980558_180_000_200_000_with_camera_labels.tfrecord,lAuBfm95khsh0xYjKmh7Kg,81,8181,101,7912,101,1.0,0.01,2.5
+individual_files_training_segment-10444454289801298640_4360_000_4380_000_with_camera_labels.tfrecord,_pclsoVG-Y3xL9lwt3wKKQ,86,8686,101,8135,101,1.0,0.01,2.5
+individual_files_training_segment-10500357041547037089_1474_800_1494_800_with_camera_labels.tfrecord,qNDVZzCpoqnrvvgdVIi3qQ,67,6767,101,5247,101,1.0,0.01,2.5
+individual_files_training_segment-10526338824408452410_5714_660_5734_660_with_camera_labels.tfrecord,sXlaA75913Ca3DHXY6uCYg,2,202,101,202,101,1.0,0.01,2.5
+individual_files_training_segment-10599748131695282446_1380_000_1400_000_with_camera_labels.tfrecord,mfopzqNxyEha3f4-7gUpQw,86,8686,808,8545,808,1.0,0.01,2.5
+individual_files_training_segment-10664823084372323928_4360_000_4380_000_with_camera_labels.tfrecord,MMRb3jHqGvp6u3_L3aIsDw,130,13130,808,12707,808,1.0,0.01,2.5
+individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord,-KpKb_7UDmsdQCf8FS3g9w,31,3131,0,2796,0,1.0,0.01,2.5

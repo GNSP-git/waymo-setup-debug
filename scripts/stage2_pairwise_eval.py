@@ -1,89 +1,113 @@
 #!/usr/bin/env python
-"""
-stage2_pairwise_eval.py
-
-Scan trajectories exported by stage1 (trajectories_all.csv) and
-find close approaches between objects using OBB distance.
-
-Config (matches your request):
-  - OBB distance: ON (via obb_distance extension)
-  - Pair-type policy: user-configurable (D), default = "all"
-      * "all": all object-type pairs EXCEPT (Sign, Sign) when both stationary
-      * "VV" : Vehicle–Vehicle only
-  - Thresholds:
-      center <= 10.0 m
-      OBB    <= 2.5 m
-
-Inputs:
-  data/samples/trajectories_all.csv
-
-Outputs:
-  data/samples/workload_pairs_min.csv   (per-pair min distances, one row per pair)
-  data/samples/closeness_summary.csv    (per-file summary)
-"""
+# stage2_pairwise_eval.py
+#
+# Stage 2: From trajectories_all.csv → find close pairs (Vehicle–Vehicle only, Option A)
+# and write a compact workload file for Ganaka / visualization.
+#
+# - Uses OBB distance if obb_distance extension is present
+# - Falls back to center distance otherwise
+# - Filters strictly to Vehicle–Vehicle pairs (Option A)
+#
+# Outputs:
+#   /home/gns/waymo_work/data/samples/workload_pairs_min.csv
+#   /home/gns/waymo_work/data/samples/closeness_summary.csv
 
 import os
 import csv
 import math
-import argparse
 from collections import defaultdict, Counter
 
 import numpy as np
 
-# Try to use OBB extension
+# -------- CONFIG --------
+BASE_DIR   = "/home/gns/waymo_work"
+SAVE_DIR   = os.path.join(BASE_DIR, "data", "samples")
+TRAJ_CSV   = os.path.join(SAVE_DIR, "trajectories_all.csv")
+PAIRS_CSV  = os.path.join(SAVE_DIR, "workload_pairs_min.csv")
+SUMMARY_CSV = os.path.join(SAVE_DIR, "closeness_summary.csv")
+
+# thresholds
+CENTER_THRESH = 10.0   # meters (center-to-center cutoff)
+OBB_THRESH    = 2.5    # meters (min OBB distance cutoff)
+
+# time binning (for sampling snapshots)
+TIME_BIN = 0.1         # seconds per bin
+
+# mode = "A" (Vehicle–Vehicle only); B,C reserved for later
+MODE = "A"
+
+# -------- OBB distance extension (optional) --------
+USE_OBB = True
 try:
     import obb_distance
-    USE_OBB = True
 except Exception:
-    print("⚠️  obb_distance extension not found, falling back to center distance only.")
     USE_OBB = False
+    print("ℹ️ obb_distance extension not found; falling back to center distance only.")
 
 
-# -------------------------------------------------------------------
-# Paths / config defaults
-# -------------------------------------------------------------------
+def pair_obb_distance(a, b):
+    """Return OBB min distance if extension is available, else center distance."""
+    if USE_OBB:
+        return obb_distance.obb_min_distance(
+            a["cx"], a["cy"], a["length"], a["width"], a["heading"],
+            b["cx"], b["cy"], b["length"], b["width"], b["heading"]
+        )
+    # fallback: Euclidean center distance
+    dx = a["cx"] - b["cx"]
+    dy = a["cy"] - b["cy"]
+    return math.hypot(dx, dy)
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(HERE)
-DATA_DIR = os.path.join(ROOT, "data", "samples")
 
-TRAJ_CSV_DEFAULT = os.path.join(DATA_DIR, "trajectories_all.csv")
-PAIRS_OUT_DEFAULT = os.path.join(DATA_DIR, "workload_pairs_min.csv")
-SUMMARY_OUT_DEFAULT = os.path.join(DATA_DIR, "closeness_summary.csv")
+def pair_center_distance(a, b):
+    dx = a["cx"] - b["cx"]
+    dy = a["cy"] - b["cy"]
+    return math.hypot(dx, dy)
 
 
-# -------------------------------------------------------------------
-# Utilities
-# -------------------------------------------------------------------
+def include_pair(a, b, mode="A"):
+    """
+    Pair filter by mode.
+    Mode A: Vehicle–Vehicle only.
+    (Modes B/C reserved for later – for now they behave like 'all except stationary Sign–Sign').
+    """
+    ta, tb = a["type"], b["type"]
+
+    if mode == "A":
+        # Strict Vehicle–Vehicle only
+        return (ta == "Vehicle" and tb == "Vehicle")
+
+    # --- Future: B / C behavior (for now: all except stationary Sign–Sign) ---
+    both_sign = (ta == "Sign" and tb == "Sign")
+    if both_sign and a["is_stationary"] and b["is_stationary"]:
+        return False
+    return True
+
 
 def load_trajectories(csv_path):
     """
-    Load trajectories_all.csv into:
-      trajs[file][oid] = list of dicts sorted by time
+    Load trajectories_all.csv and return:
+      traj_by_file: {file -> {oid -> [records...]}}
+    Each record:
+      dict(t, cx, cy, cz, heading, length, width, height, type, speed, is_stationary)
     """
-    trajs = defaultdict(lambda: defaultdict(list))
-    if not os.path.isfile(csv_path):
-        raise FileNotFoundError(f"Trajectory CSV not found: {csv_path}")
+    traj_by_file = defaultdict(lambda: defaultdict(list))
+    files_seen = set()
+    print(f"▶ Loading trajectories from {csv_path} ...")
 
     with open(csv_path, "r") as f:
         reader = csv.reader(f)
         header = next(reader)
         idx = {h: i for i, h in enumerate(header)}
 
-        required = ["file", "oid", "type", "t", "cx", "cy",
-                    "cz", "heading", "length", "width", "height",
-                    "speed", "is_stationary"]
-        for r in required:
-            if r not in idx:
-                raise ValueError(f"Missing column '{r}' in {csv_path}")
-
         for row in reader:
-            file_id = row[idx["file"]]
+            fid = row[idx["file"]]
             oid = row[idx["oid"]]
+            typ = row[idx["type"]]
+
             rec = {
-                "file": file_id,
+                "file": fid,
                 "oid": oid,
-                "type": row[idx["type"]],
+                "type": typ,
                 "t": float(row[idx["t"]]),
                 "cx": float(row[idx["cx"]]),
                 "cy": float(row[idx["cy"]]),
@@ -93,307 +117,206 @@ def load_trajectories(csv_path):
                 "width": float(row[idx["width"]]),
                 "height": float(row[idx["height"]]),
                 "speed": float(row[idx["speed"]]),
-                "is_stationary": int(row[idx["is_stationary"]]),
+                "is_stationary": bool(int(row[idx["is_stationary"]])),
             }
-            trajs[file_id][oid].append(rec)
+            traj_by_file[fid][oid].append(rec)
+            files_seen.add(fid)
 
-    # Sort each track by time
-    for file_id in trajs:
-        for oid in trajs[file_id]:
-            trajs[file_id][oid].sort(key=lambda r: r["t"])
+    # sort each trajectory by time
+    for fid in traj_by_file:
+        for oid in traj_by_file[fid]:
+            traj_by_file[fid][oid].sort(key=lambda r: r["t"])
 
-    return trajs
-
-
-def center_distance(a, b):
-    dx = a["cx"] - b["cx"]
-    dy = a["cy"] - b["cy"]
-    return math.hypot(dx, dy)
+    print(f"  Files in CSV: {len(files_seen)}")
+    return traj_by_file
 
 
-def obb_distance_between(a, b):
-    if not USE_OBB:
-        return center_distance(a, b)
-    return obb_distance.obb_min_distance(
-        a["cx"], a["cy"], a["length"], a["width"], a["heading"],
-        b["cx"], b["cy"], b["length"], b["width"], b["heading"]
-    )
-
-
-def pair_type_allowed(a, b, policy):
+def build_time_bins(trajs_for_file):
     """
-    policy:
-      - "VV"  : Vehicle–Vehicle only
-      - "all" : all pairs EXCEPT (Sign, Sign) when both stationary
+    Given {oid -> [records]} for a single file, return array of bin centers.
     """
-    ta, tb = a["type"], b["type"]
-    sa, sb = a["is_stationary"], b["is_stationary"]
+    all_ts = [r["t"] for arr in trajs_for_file.values() for r in arr]
+    if not all_ts:
+        return np.array([])
+    t_min = min(all_ts)
+    t_max = max(all_ts)
+    # inclusive of t_max by padding slightly
+    n_bins = max(1, int(math.ceil((t_max - t_min) / TIME_BIN)))
+    bins = t_min + (np.arange(n_bins) + 0.5) * TIME_BIN
+    return bins
 
-    if policy == "VV":
-        return (ta == "Vehicle") and (tb == "Vehicle")
 
-    # default "all": all pairs, but exclude Sign–Sign when both stationary
-    if ta == "Sign" and tb == "Sign" and sa == 1 and sb == 1:
-        return False
-    return True
-
-
-def build_time_index(tracks, time_window):
+def snapshot_at_time(traj_dict, t_query):
     """
-    tracks: dict[oid] -> [rec,...] for one file
-    time_window: window used to group nearly-simultaneous records
+    For a given file's trajectories, build a snapshot:
+      list of records closest in time to t_query (within TIME_BIN/2).
+    """
+    half = TIME_BIN / 2.0
+    snap = []
+    for oid, arr in traj_dict.items():
+        # arr is sorted by time, do a small linear scan (arrays are short)
+        best = None
+        best_dt = 1e18
+        for r in arr:
+            dt = abs(r["t"] - t_query)
+            if dt < best_dt:
+                best_dt = dt
+                best = r
+            else:
+                # since sorted, once dt starts growing we can break
+                if r["t"] > t_query:
+                    break
+        if best is not None and best_dt <= half:
+            snap.append(best)
+    return snap
 
+
+def evaluate_pairs_for_file(fname, trajs_for_file, mode="A"):
+    """
+    For a single file:
+      - Build time bins
+      - For each bin, get snapshot
+      - For each snapshot, compute pair distances
+      - Keep best (min OBB distance) per pair over time
     Returns:
-      list of (t_center, [records_active_at_t])
+      pairs: list of dict(file, oid_i, oid_j, type_i, type_j, t_at, d_center_min, d_obb_min)
+      meta:  dict(num_tracks, num_samples, type_hist, num_bins)
     """
-    # Unique times from all records
-    all_times = sorted({r["t"] for arr in tracks.values() for r in arr})
-    if not all_times:
-        return []
+    # meta info
+    num_tracks = len(trajs_for_file)
+    num_samples = sum(len(v) for v in trajs_for_file.values())
+    type_hist = Counter(r["type"] for arr in trajs_for_file.values() for r in arr)
 
-    half_win = time_window / 2.0
-    time_index = []
+    time_bins = build_time_bins(trajs_for_file)
+    print(f"  Tracks: {num_tracks}, samples: {num_samples}")
+    print(f"  Type histogram: {dict(type_hist)}")
+    print(f"  Time bins: {len(time_bins)}")
 
-    for t in all_times:
-        snapshot = []
-        for oid, arr in tracks.items():
-            # Simple nearest-in-time search
-            best = None
-            best_dt = 1e9
-            for rec in arr:
-                dt = abs(rec["t"] - t)
-                if dt < best_dt:
-                    best_dt = dt
-                    best = rec
-            if best is not None and best_dt <= half_win:
-                snapshot.append(best)
-        if snapshot:
-            time_index.append((t, snapshot))
+    best_for_pair = {}  # (oid_i, oid_j) -> (d_obb, d_center, t_at, rec_i, rec_j)
 
-    return time_index
+    for t_bin in time_bins:
+        snapshot = snapshot_at_time(trajs_for_file, t_bin)
+        n = len(snapshot)
+        if n < 2:
+            continue
 
-
-# -------------------------------------------------------------------
-# Main pairwise scanner
-# -------------------------------------------------------------------
-
-def scan_file(file_id, tracks, center_thresh, obb_thresh, pair_policy, time_window):
-    """
-    tracks: dict[oid] -> [rec,...] for a single file
-    Returns:
-      best_pairs: dict[(oid_i, oid_j)] -> dict(...)
-      stats: dict summary
-    """
-    # Quick stats
-    n_tracks = len(tracks)
-    n_samples = sum(len(v) for v in tracks.values())
-    type_counter = Counter(r["type"] for arr in tracks.values() for r in arr)
-
-    print(f"  Tracks: {n_tracks}, samples: {n_samples}")
-    print(f"  Type histogram: {dict(type_counter)}")
-
-    # Build time index
-    time_index = build_time_index(tracks, time_window)
-    print(f"  Time bins: {len(time_index)}")
-
-    best_pairs = {}  # key = (oid_i, oid_j), value = dict with metrics
-
-    for t, snapshot in time_index:
-        # For debugging: how many vehicles, min center distance, etc.
-        veh_snap = [r for r in snapshot if r["type"] == "Vehicle"]
-        if veh_snap:
-            min_center = None
-            for i in range(len(veh_snap)):
-                for j in range(i + 1, len(veh_snap)):
-                    d = center_distance(veh_snap[i], veh_snap[j])
-                    if (min_center is None) or (d < min_center):
-                        min_center = d
-            # Uncomment if you want per-time logging:
-            # print(f"[t={t:.3f}] vehicles={len(veh_snap)}, min(center)≈{min_center:.2f} m")
-
-        # Pairwise on snapshot
-        for i in range(len(snapshot)):
+        for i in range(n):
             a = snapshot[i]
-            for j in range(i + 1, len(snapshot)):
+            for j in range(i + 1, n):
                 b = snapshot[j]
 
-                if not pair_type_allowed(a, b, pair_policy):
+                if not include_pair(a, b, mode=mode):
                     continue
 
-                d_center = center_distance(a, b)
-                if d_center > center_thresh:
+                d_center = pair_center_distance(a, b)
+                if d_center > CENTER_THRESH:
                     continue
 
-                d_obb = obb_distance_between(a, b)
-                if d_obb > obb_thresh:
+                d_obb = pair_obb_distance(a, b)
+                if d_obb > OBB_THRESH:
                     continue
 
-                # Keep best (min obb distance) per pair
                 key = tuple(sorted((a["oid"], b["oid"])))
-                prev = best_pairs.get(key)
-                if (prev is None) or (d_obb < prev["d_obb_min"]):
-                    best_pairs[key] = {
-                        "file": file_id,
-                        "oid_i": key[0],
-                        "oid_j": key[1],
-                        "type_i": a["type"],
-                        "type_j": b["type"],
-                        "t_at": t,
-                        "d_center_min": d_center,
-                        "d_obb_min": d_obb,
-                        "L_i": a["length"],
-                        "W_i": a["width"],
-                        "H_i": a["height"],
-                        "L_j": b["length"],
-                        "W_j": b["width"],
-                        "H_j": b["height"],
-                        "speed_i": a["speed"],
-                        "speed_j": b["speed"],
-                        "is_stationary_i": a["is_stationary"],
-                        "is_stationary_j": b["is_stationary"],
-                    }
+                prev = best_for_pair.get(key)
+                if (prev is None) or (d_obb < prev[0]):
+                    best_for_pair[key] = (d_obb, d_center, t_bin, a, b)
 
-    stats = {
-        "file": file_id,
-        "tracks": n_tracks,
-        "samples": n_samples,
-        "pairs_found": len(best_pairs),
-        "type_histogram": dict(type_counter),
+    # convert dict → list
+    pairs = []
+    for (oid_i, oid_j), (d_obb, d_center, t_at, a, b) in best_for_pair.items():
+        pairs.append({
+            "file": fname,
+            "oid_i": oid_i,
+            "oid_j": oid_j,
+            "type_i": a["type"],
+            "type_j": b["type"],
+            "t_at": t_at,
+            "d_center_min": d_center,
+            "d_obb_min": d_obb,
+        })
+
+    # sort by OBB distance
+    pairs.sort(key=lambda x: x["d_obb_min"])
+
+    print(f"  → {len(pairs)} pairs within {CENTER_THRESH:.1f} m center & {OBB_THRESH:.2f} m OBB.")
+    return pairs, {
+        "num_tracks": num_tracks,
+        "num_samples": num_samples,
+        "type_hist": dict(type_hist),
+        "num_bins": len(time_bins),
     }
 
-    print(
-        f"  → {len(best_pairs)} pairs within "
-        f"{center_thresh:.1f} m center & {obb_thresh:.2f} m OBB."
-    )
-
-    return best_pairs, stats
-
-
-def write_pairs_csv(pairs_dicts, out_path):
-    if not pairs_dicts:
-        print("⚠️  No pairs to write (workload_pairs_min.csv).")
-        return
-
-    fieldnames = [
-        "file",
-        "oid_i", "oid_j",
-        "type_i", "type_j",
-        "t_at",
-        "d_center_min", "d_obb_min",
-        "L_i", "W_i", "H_i",
-        "L_j", "W_j", "H_j",
-        "speed_i", "speed_j",
-        "is_stationary_i", "is_stationary_j",
-    ]
-
-    with open(out_path, "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fieldnames)
-        w.writeheader()
-        for row in pairs_dicts:
-            w.writerow(row)
-    print(f"✅ Pairs written → {out_path}")
-
-
-def write_summary_csv(summary_list, out_path):
-    if not summary_list:
-        print("⚠️  No summary to write.")
-        return
-
-    # flatten type_histogram into JSON-like string
-    fieldnames = ["file", "tracks", "samples", "pairs_found", "type_histogram"]
-
-    with open(out_path, "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fieldnames)
-        w.writeheader()
-        for s in summary_list:
-            row = dict(s)
-            row["type_histogram"] = repr(row["type_histogram"])
-            w.writerow(row)
-    print(f"✅ Summary written → {out_path}")
-
-
-# -------------------------------------------------------------------
-# Main
-# -------------------------------------------------------------------
 
 def main():
-    ap = argparse.ArgumentParser(
-        description="Scan trajectories_all.csv for close approaches using OBB distance."
-    )
-    ap.add_argument(
-        "--traj-csv",
-        default=TRAJ_CSV_DEFAULT,
-        help=f"Trajectory CSV (default: {TRAJ_CSV_DEFAULT})",
-    )
-    ap.add_argument(
-        "--pairs-out",
-        default=PAIRS_OUT_DEFAULT,
-        help=f"Output CSV for per-pair minima (default: {PAIRS_OUT_DEFAULT})",
-    )
-    ap.add_argument(
-        "--summary-out",
-        default=SUMMARY_OUT_DEFAULT,
-        help=f"Output CSV for per-file summary (default: {SUMMARY_OUT_DEFAULT})",
-    )
-    ap.add_argument(
-        "--center-thresh",
-        type=float,
-        default=10.0,
-        help="Max center-to-center distance (meters) for candidate pairs (default: 10.0)",
-    )
-    ap.add_argument(
-        "--obb-thresh",
-        type=float,
-        default=2.5,
-        help="Max OBB-to-OBB distance (meters) for candidate pairs (default: 2.5)",
-    )
-    ap.add_argument(
-        "--time-window",
-        type=float,
-        default=0.15,
-        help="Time window (seconds) to group records as simultaneous (default: 0.15)",
-    )
-    ap.add_argument(
-        "--pair-types",
-        choices=["VV", "all"],
-        default="all",
-        help=(
-            "Pair-type policy: 'VV' = Vehicle–Vehicle only; "
-            "'all' = all types except stationary Sign–Sign (default: all)"
-        ),
-    )
-
-    args = ap.parse_args()
-
-    print(f"▶ Loading trajectories from {args.traj_csv} ...")
-    trajs_by_file = load_trajectories(args.traj_csv)
-    print(f"  Files in CSV: {len(trajs_by_file)}")
+    traj_by_file = load_trajectories(TRAJ_CSV)
 
     all_pairs = []
-    summary = []
+    summary_rows = []
 
-    for file_id, tracks in trajs_by_file.items():
-        print(f"\n▶ Processing file: {file_id}")
-        pairs_dict, stats = scan_file(
-            file_id=file_id,
-            tracks=tracks,
-            center_thresh=args.center_thresh,
-            obb_thresh=args.obb_thresh,
-            pair_policy=args.pair_types,
-            time_window=args.time_window,
-        )
-        all_pairs.extend(pairs_dict.values())
-        summary.append(stats)
+    for fname, trajs_for_file in traj_by_file.items():
+        print(f"\n▶ Processing file: {os.path.basename(fname)}")
+        pairs, meta = evaluate_pairs_for_file(fname, trajs_for_file, mode=MODE)
+        all_pairs.extend(pairs)
 
-    if not all_pairs:
-        print(
-            f"\n❌ No pairs found under center≤{args.center_thresh} m "
-            f"& OBB≤{args.obb_thresh} m, policy={args.pair_types}."
-        )
-    else:
-        write_pairs_csv(all_pairs, args.pairs_out)
+        summary_rows.append({
+            "file": fname,
+            "num_tracks": meta["num_tracks"],
+            "num_samples": meta["num_samples"],
+            "num_bins": meta["num_bins"],
+            "num_pairs": len(pairs),
+            "center_thresh": CENTER_THRESH,
+            "obb_thresh": OBB_THRESH,
+            "mode": MODE,
+        })
 
-    write_summary_csv(summary, args.summary_out)
+    # write pairs CSV
+    os.makedirs(SAVE_DIR, exist_ok=True)
+    with open(PAIRS_CSV, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow([
+            "file",
+            "oid_i", "oid_j",
+            "type_i", "type_j",
+            "t_at",
+            "d_center_min",
+            "d_obb_min",
+        ])
+        for p in all_pairs:
+            w.writerow([
+                p["file"],
+                p["oid_i"], p["oid_j"],
+                p["type_i"], p["type_j"],
+                f"{p['t_at']:.6f}",
+                f"{p['d_center_min']:.6f}",
+                f"{p['d_obb_min']:.6f}",
+            ])
+    print(f"✅ Pairs written → {PAIRS_CSV}")
+
+    # write summary CSV
+    with open(SUMMARY_CSV, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow([
+            "file",
+            "num_tracks",
+            "num_samples",
+            "num_bins",
+            "num_pairs",
+            "center_thresh",
+            "obb_thresh",
+            "mode",
+        ])
+        for row in summary_rows:
+            w.writerow([
+                row["file"],
+                row["num_tracks"],
+                row["num_samples"],
+                row["num_bins"],
+                row["num_pairs"],
+                row["center_thresh"],
+                row["obb_thresh"],
+                row["mode"],
+            ])
+    print(f"✅ Summary written → {SUMMARY_CSV}")
 
 
 if __name__ == "__main__":
