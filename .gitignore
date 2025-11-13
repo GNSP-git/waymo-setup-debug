@@ -1,0 +1,88 @@
+# =========================
+# Project data (keep small samples)
+# =========================
+
+#keep all data, as it has outputs
+#data/
+#samples now has outputs, so keep it
+#!data/samples/**
+#!data/README.md
+
+# Waymo TFRecord blobs
+*.tfrecord
+*.tfrecord-*
+*.tfrecords
+
+# Wheels and other large binary artifacts
+*.whl
+
+# =========================
+# Python environments (folders), keep env recipes
+# =========================
+env/
+env*/
+.venv/
+venv/
+*.venv/
+.conda/
+.mamba/
+*.env
+
+# Keep tracked environment specs
+!envs/*.yml
+!environment*.yml
+!requirements*.txt
+
+# =========================
+# Python caches & test caches
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# =========================
+# Build / packaging
+# =========================
+build/
+dist/
+.eggs/
+*.egg-info/
+
+# =========================
+# Logs / temp files
+# =========================
+*.log
+*.tmp
+*.temp
+
+# =========================
+# Protobuf generated files (uncomment to keep generated code out)
+# =========================
+# *_pb2.py
+# *_pb2.pyi
+
+# =========================
+# ML model weights / checkpoints (large)
+# =========================
+*.ckpt
+*.ckpt.*
+*.h5
+*.pt
+*.onnx
+
+# =========================
+# IDE / OS junk
+# =========================
+.vscode/
+.idea/
+.history
+.DS_Store
+Thumbs.db

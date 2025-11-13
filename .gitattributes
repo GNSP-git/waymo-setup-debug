@@ -1,0 +1,6 @@
+*.csv.gz filter=lfs diff=lfs merge=lfs -text
+data/samples/*.csv.gz filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
+*.npz filter=lfs diff=lfs merge=lfs -text
+*.gz filter=lfs diff=lfs merge=lfs -text
+data/samples/workload_samples* filter=lfs diff=lfs merge=lfs -text

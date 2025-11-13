@@ -1,0 +1,2000 @@
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+EPF
+
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+EOF
+
+python << EOF
+from waymo_open_dataset.utils import frame_utils
+import numpy as np
+
+# Select the TOP lidar
+lidar = next(l for l in frame.lasers if l.name == open_dataset.LaserName.TOP)
+
+# Decompress and parse range image
+ri = open_dataset.MatrixFloat()
+ri.ParseFromString(tf.io.decode_compressed(lidar.ri_return1.range_image_compressed, "ZLIB").numpy())
+range_image = np.array(ri.data).reshape(ri.shape.dims)
+
+# Normalize and display
+plt.imshow(range_image, cmap='gray')
+plt.title("LIDAR TOP Range Image")
+plt.axis('off')
+plt.show()
+EOF
+
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+ from waymo_open_dataset.utils import frame_utils
+import numpy as np
+
+# Select the TOP lidar
+lidar = next(l for l in frame.lasers if l.name == open_dataset.LaserName.TOP)
+
+# Decompress and parse range image
+ri = open_dataset.MatrixFloat()
+ri.ParseFromString(tf.io.decode_compressed(lidar.ri_return1.range_image_compressed, "ZLIB").numpy())
+range_image = np.array(ri.data).reshape(ri.shape.dims)
+
+# Normalize and display
+plt.imshow(range_image, cmap='gray')
+plt.title("LIDAR TOP Range Image")
+plt.axis('off')
+plt.show()
+EOF
+
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+
+from waymo_open_dataset.utils import frame_utils
+import numpy as np
+
+# Select the TOP lidar
+lidar = next(l for l in frame.lasers if l.name == open_dataset.LaserName.TOP)
+
+# Decompress and parse range image
+ri = open_dataset.MatrixFloat()
+ri.ParseFromString(tf.io.decode_compressed(lidar.ri_return1.range_image_compressed, "ZLIB").numpy())
+range_image = np.array(ri.data).reshape(ri.shape.dims)
+
+# Normalize and display
+plt.imshow(range_image, cmap='gray')
+plt.title("LIDAR TOP Range Image")
+plt.axis('off')
+plt.show()
+EOF
+
+ls
+
+python
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+EOF
+
+conda activate waymo
+python - << 'EOF'
+import tensorflow as tf
+print("✅ TF:", tf.__version__)
+EOF
+
+ls
+cat > view_waymo_sample.py
+ls v*
+ls
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+EOF
+
+python << EOF
+from waymo_open_dataset.utils import frame_utils
+import numpy as np
+
+# Select the TOP lidar
+lidar = next(l for l in frame.lasers if l.name == open_dataset.LaserName.TOP)
+
+# Decompress and parse range image
+ri = open_dataset.MatrixFloat()
+ri.ParseFromString(tf.io.decode_compressed(lidar.ri_return1.range_image_compressed, "ZLIB").numpy())
+range_image = np.array(ri.data).reshape(ri.shape.dims)
+
+# Normalize and display
+plt.imshow(range_image, cmap='gray')
+plt.title("LIDAR TOP Range Image")
+plt.axis('off')
+plt.show()
+EOF
+
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+
+
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+from waymo_open_dataset.utils import frame_utils
+import numpy as np
+
+# Select the TOP lidar
+lidar = next(l for l in frame.lasers if l.name == open_dataset.LaserName.TOP)
+
+# Decompress and parse range image
+ri = open_dataset.MatrixFloat()
+ri.ParseFromString(tf.io.decode_compressed(lidar.ri_return1.range_image_compressed, "ZLIB").numpy())
+range_image = np.array(ri.data).reshape(ri.shape.dims)
+
+# Normalize and display
+plt.imshow(range_image, cmap='gray')
+plt.title("LIDAR TOP Range Image")
+plt.axis('off')
+plt.show()
+EOF
+
+ls
+ls /mnt/n/waymo_comma/waymo/
+ls -l /mnt/n/waymo_comma/waymo/
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+
+
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+
+
+
+
+Exit()
+exit()
+
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+from waymo_open_dataset.utils import frame_utils
+import numpy as np
+
+# Select the TOP lidar
+lidar = next(l for l in frame.lasers if l.name == open_dataset.LaserName.TOP)
+
+# Decompress and parse range image
+ri = open_dataset.MatrixFloat()
+ri.ParseFromString(tf.io.decode_compressed(lidar.ri_return1.range_image_compressed, "ZLIB").numpy())
+range_image = np.array(ri.data).reshape(ri.shape.dims)
+
+# Normalize and display
+plt.imshow(range_image, cmap='gray')
+plt.title("LIDAR TOP Range Image")
+plt.axis('off')
+plt.show()
+EOF
+
+python << EOF
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import range_image_utils, transform_utils
+import numpy as np
+import cv2
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels"
+
+dataset = tf.data.TFRecordDataset(fname)
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+
+# pick the TOP lidar
+top_lidar = [lidar for lidar in frame.lasers if lidar.name == open_dataset.LaserName.TOP][0]
+
+# first return = 0, second return = 1
+range_image = top_lidar.ri_return1.range_image_compressed
+ri = open_dataset.MatrixFloat()
+ri.ParseFromString(range_image)
+ri = tf.reshape(tf.convert_to_tensor(ri.data), ri.shape)
+
+# extract range channel only (0=range,1=intensity,...)
+range_channel = ri[..., 0].numpy()
+
+# normalize to 8-bit for visualization
+img = (range_channel / np.max(range_channel) * 255).astype(np.uint8)
+
+# scale to nice size for display
+img_resized = cv2.resize(img, (1024, 256))
+cv2.imshow("Lidar Range Image (TOP)", img_resized)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+EOF
+
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+
+
+
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import range_image_utils, transform_utils
+import numpy as np
+import cv2
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels"
+
+dataset = tf.data.TFRecordDataset(fname)
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+
+# pick the TOP lidar
+top_lidar = [lidar for lidar in frame.lasers if lidar.name == open_dataset.LaserName.TOP][0]
+
+# first return = 0, second return = 1
+range_image = top_lidar.ri_return1.range_image_compressed
+ri = open_dataset.MatrixFloat()
+ri.ParseFromString(range_image)
+ri = tf.reshape(tf.convert_to_tensor(ri.data), ri.shape)
+
+# extract range channel only (0=range,1=intensity,...)
+range_channel = ri[..., 0].numpy()
+
+# normalize to 8-bit for visualization
+img = (range_channel / np.max(range_channel) * 255).astype(np.uint8)
+
+# scale to nice size for display
+img_resized = cv2.resize(img, (1024, 256))
+cv2.imshow("Lidar Range Image (TOP)", img_resized)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+EOF
+
+pip install opencv-python-headless
+python << EOF
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import range_image_utils
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Load one Waymo file
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels"
+dataset = tf.data.TFRecordDataset(fname)
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+
+# Get TOP lidar
+top = next(l for l in frame.lasers if l.name == open_dataset.LaserName.TOP)
+
+# First return = ri_return1
+ri = open_dataset.MatrixFloat()
+ri.ParseFromString(top.ri_return1.range_image_compressed)
+ri = tf.reshape(tf.convert_to_tensor(ri.data), ri.shape)
+
+# Extract range channel
+range_img = ri[..., 0].numpy()
+
+# Normalize for display
+range_img_norm = (range_img / np.max(range_img) * 255).astype(np.uint8)
+
+# Plot
+plt.figure(figsize=(12,3))
+plt.imshow(range_img_norm, cmap='gray')
+plt.title("Waymo Lidar TOP Range Image")
+plt.axis('off')
+plt.show()
+EOF
+
+python << EOF
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import range_image_utils
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Load one Waymo file
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels"
+dataset = tf.data.TFRecordDataset(fname)
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+
+# Get TOP lidar
+top = next(l for l in frame.lasers if l.name == open_dataset.LaserName.TOP)
+
+# First return = ri_return1
+ri = open_dataset.MatrixFloat()
+ri.ParseFromString(top.ri_return1.range_image_compressed)
+ri = tf.reshape(tf.convert_to_tensor(ri.data), ri.shape)
+
+# Extract range channel
+range_img = ri[..., 0].numpy()
+
+# Normalize for display
+range_img_norm = (range_img / np.max(range_img) * 255).astype(np.uint8)
+
+# Plot
+plt.figure(figsize=(12,3))
+plt.imshow(range_img_norm, cmap='gray')
+plt.title("Waymo Lidar TOP Range Image")
+plt.axis('off')
+plt.show()
+EOF
+
+conda activate waymo
+pip install "numpy<2" --force-reinstall
+pip install "protobuf<4.21" --force-reinstall
+python -c "import numpy, tensorflow as tf; print(numpy.__version__, tf.__version__)"
+pip install opencv-python-headless
+python -c "import cv2; print('OpenCV OK:', cv2.__version__)"
+python << EOF
+import numpy as np
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils, range_image_utils, transform_utils
+
+# Load one frame
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels"
+dataset = tf.data.TFRecordDataset([fname])
+
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+# Parse lidar
+(range_images, camera_projections, seg_labels, range_image_top_pose) =     frame_utils.parse_range_image_and_camera_projection(frame)
+
+points_all = []
+for i, laser in enumerate(frame.lasers):
+    if laser.name == open_dataset.LaserName.TOP:
+        ri = range_images[i][0]
+        range_image = tf.reshape(tf.convert_to_tensor(ri.data), ri.shape.dims)
+        # Range image -> XYZ points
+        points, cp = range_image_utils.compute_range_image_point_cloud(
+            frame,
+            range_images,
+            camera_projections,
+            range_image_top_pose,
+            ri_index=i
+        )
+        points_all.append(points)
+
+points_all = np.concatenate(points_all, axis=0)
+print("Pointcloud shape:", points_all.shape)
+
+EOF
+
+python << EOF
+import numpy as np
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils, range_image_utils, transform_utils
+
+# Load one frame
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels"
+dataset = tf.data.TFRecordDataset([fname])
+
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+# Parse lidar
+(range_images, camera_projections, seg_labels, range_image_top_pose) =     frame_utils.parse_range_image_and_camera_projection(frame)
+
+points_all = []
+for i, laser in enumerate(frame.lasers):
+    if laser.name == open_dataset.LaserName.TOP:
+        ri = range_images[i][0]
+        range_image = tf.reshape(tf.convert_to_tensor(ri.data), ri.shape.dims)
+        # Range image -> XYZ points
+        points, cp = range_image_utils.compute_range_image_point_cloud(
+            frame,
+            range_images,
+            camera_projections,
+            range_image_top_pose,
+            ri_index=i
+        )
+        points_all.append(points)
+
+points_all = np.concatenate(points_all, axis=0)
+print("Pointcloud shape:", points_all.shape)
+EOF
+
+rm -rf ~/.local/lib/python3.10/site-packages/numpy*
+rm -rf ~/.local/lib/python3.10/site-packages/numpy-*
+conda install numpy=1.26.4 tensorflow=2.13 -y
+python - << 'EOF'
+import numpy, tensorflow as tf
+print("NumPy:", numpy.__version__)
+print("TensorFlow:", tf.__version__)
+EOF
+
+which python
+rm -rf ~/.local/lib/python3.10/site-packages/numpy*
+rm -rf ~/.local/lib/python3.10/site-packages/pandas*
+rm -rf ~/.local/lib/python3.10/site-packages/scipy*
+rm -rf ~/.local/lib/python3.10/site-packages/tensorflow*
+pip cache purge
+pip install "numpy<2" "tensorflow==2.13"
+python - << 'EOF'
+import numpy, tensorflow as tf
+print("NumPy:", numpy.__version__)
+print("TensorFlow:", tf.__version__)
+EOF
+
+python << EOF
+import numpy as np
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils, range_image_utils, transform_utils
+
+# Load one frame
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels"
+dataset = tf.data.TFRecordDataset([fname])
+
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+# Parse lidar
+(range_images, camera_projections, seg_labels, range_image_top_pose) =     frame_utils.parse_range_image_and_camera_projection(frame)
+
+points_all = []
+for i, laser in enumerate(frame.lasers):
+    if laser.name == open_dataset.LaserName.TOP:
+        ri = range_images[i][0]
+        range_image = tf.reshape(tf.convert_to_tensor(ri.data), ri.shape.dims)
+        # Range image -> XYZ points
+        points, cp = range_image_utils.compute_range_image_point_cloud(
+            frame,
+            range_images,
+            camera_projections,
+            range_image_top_pose,
+            ri_index=i
+        )
+        points_all.append(points)
+
+points_all = np.concatenate(points_all, axis=0)
+print("Pointcloud shape:", points_all.shape)
+EOF
+
+ls /mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord clear
+python << EOF
+import numpy as np
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils, range_image_utils, transform_utils
+
+# Load one frame
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname])
+
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+# Parse lidar
+(range_images, camera_projections, seg_labels, range_image_top_pose) =     frame_utils.parse_range_image_and_camera_projection(frame)
+
+points_all = []
+for i, laser in enumerate(frame.lasers):
+    if laser.name == open_dataset.LaserName.TOP:
+        ri = range_images[i][0]
+        range_image = tf.reshape(tf.convert_to_tensor(ri.data), ri.shape.dims)
+        # Range image -> XYZ points
+        points, cp = range_image_utils.compute_range_image_point_cloud(
+            frame,
+            range_images,
+            camera_projections,
+            range_image_top_pose,
+            ri_index=i
+        )
+        points_all.append(points)
+
+points_all = np.concatenate(points_all, axis=0)
+print("Pointcloud shape:", points_all.shape)
+EOF
+
+python << EOF
+import numpy as np
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils, range_image_utils
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname])
+
+# Load frame
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+# Parse range images
+range_images, camera_projections, seg_labels, range_image_top_pose =     frame_utils.parse_range_image_and_camera_projection(frame)
+
+points_all = []
+
+# Loop through each LiDAR sensor
+for laser in frame.lasers:
+    laser_id = laser.name
+    if laser_id != open_dataset.LaserName.TOP:
+        continue  # only top LiDAR for now
+
+    ri = range_images[laser_id][0]  # ✅ dict lookup, not index 0
+    ri_tensor = tf.reshape(tf.convert_to_tensor(ri.data), ri.shape.dims)
+
+    # Convert to 3D points
+    points, _ = range_image_utils.compute_range_image_point_cloud(
+        frame,
+        range_images,
+        camera_projections,
+        range_image_top_pose,
+        ri_index=laser_id
+    )
+
+    points_all.append(points.numpy())
+
+points_all = np.concatenate(points_all, axis=0)
+print("✅ LiDAR points:", points_all.shape)
+print(points_all[:5])
+
+EOF
+
+python << EOF
+import numpy as np
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils, range_image_utils, transform_utils
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname])
+
+# Load one frame
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+# Parse lidar signals
+range_images, camera_projections, seg_labels, range_image_top_pose =     frame_utils.parse_range_image_and_camera_projection(frame)
+
+vehicle_pose = tf.reshape(tf.convert_to_tensor(frame.pose.transform), [4,4])
+
+points_all = []
+
+for laser in frame.lasers:
+    laser_id = laser.name
+    if laser_id != open_dataset.LaserName.TOP:
+        continue   # only top LiDAR for now
+
+    # ✅ Correct dictionary index
+    ri = range_images[laser_id][0]
+
+    # Convert bytes to tensor shape
+    ri_tensor = tf.reshape(tf.convert_to_tensor(ri.data), ri.shape.dims)
+
+    # ✅ Compute polar coordinates: (range, theta, phi)
+    polar = range_image_utils.compute_range_image_polar(
+        frame, range_images, camera_projections, range_image_top_pose, laser_id
+    )[0].numpy()  # get points from tuple
+
+    # Split
+    ranges = polar[:, :, 0]
+    theta = polar[:, :, 1]
+    phi   = polar[:, :, 2]
+
+    # ✅ Convert to 3D Cartesian
+    x = ranges * np.cos(theta) * np.sin(phi)
+    y = ranges * np.sin(theta) * np.sin(phi)
+    z = ranges * np.cos(phi)
+
+    points = np.stack([x,y,z], axis=-1).reshape(-1,3)
+
+    # ✅ Transform using vehicle pose
+    pts_h = np.concatenate([points, np.ones((points.shape[0],1))], axis=1)
+    points_world = (vehicle_pose.numpy() @ pts_h.T).T[:, :3]
+
+    points_all.append(points_world)
+
+# Combine all points
+points_all = np.concatenate(points_all, axis=0)
+
+print("✅ LiDAR XYZ points:", points_all.shape)
+print(points_all[:5])
+EOF
+
+python << EOF
+import numpy as np
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils, range_image_utils, transform_utils
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname])
+
+# Load one frame
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+# Parse packed lidar buffers
+range_images, camera_projections, seg_labels, top_pose = frame_utils.parse_range_image_and_camera_projection(frame)
+
+points_all = []
+
+for laser in frame.lasers:
+    if laser.name != open_dataset.LaserName.TOP:
+        continue
+
+    # ✅ Select FIRST_RETURN channel
+    ri = range_images[laser.name][open_dataset.LaserName.TOP]  # older API form
+    ri_tensor = tf.reshape(tf.convert_to_tensor(ri.data), ri.shape.dims)
+
+    # ✅ Compute polar (range, theta, phi)
+    polar, _ = range_image_utils.compute_range_image_polar(
+        frame, range_images, camera_projections, top_pose, laser.name
+    )
+
+    # Take first return only
+    polar = polar[0].numpy()
+
+    ranges = polar[:, :, 0]
+    theta  = polar[:, :, 1]
+    phi    = polar[:, :, 2]
+
+    # ✅ Convert polar → XYZ
+    x = ranges * np.cos(theta) * np.sin(phi)
+    y = ranges * np.sin(theta) * np.sin(phi)
+    z = ranges * np.cos(phi)
+
+    pts = np.stack([x, y, z], axis=-1).reshape(-1,3)
+    points_all.append(pts)
+
+# Merge all lidar points
+points_all = np.concatenate(points_all, axis=0)
+print("✅ LiDAR XYZ points:", points_all.shape)
+print(points_all[:5])
+EOF
+
+python << EOF
+import numpy as np
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils, range_image_utils
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname])
+
+# Load frame
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+# Parse range images / projections
+range_images, camera_projections, seg_labels, top_pose =     frame_utils.parse_range_image_and_camera_projection(frame)
+
+points_all = []
+
+for lidar in frame.lasers:
+    if lidar.name != open_dataset.LaserName.TOP:
+        continue
+
+    # ✅ FIRST RETURN channel
+    ri = range_images[lidar.name][open_dataset.LaserName.TOP]
+
+    # ✅ Convert to TF tensor
+    ri_tensor = tf.reshape(tf.convert_to_tensor(ri.data), ri.shape.dims)
+
+    # ✅ Compute polar → returns [2 x H x W x 3] (first+second return)
+    polar, _ = range_image_utils.compute_range_image_polar(
+        frame,
+        range_images,
+        camera_projections,
+        top_pose,
+        lidar.name
+    )
+
+    # ✅ First return (index 0)
+    polar = polar[0].numpy()
+
+    ranges = polar[:, :, 0]
+    theta  = polar[:, :, 1]
+    phi    = polar[:, :, 2]
+
+    # ✅ Convert polar → XYZ
+    x = ranges * np.cos(theta) * np.sin(phi)
+    y = ranges * np.sin(theta) * np.sin(phi)
+    z = ranges * np.cos(phi)
+
+    pts = np.stack([x, y, z], axis=-1).reshape(-1, 3)
+    points_all.append(pts)
+
+points_all = np.concatenate(points_all, axis=0)
+print("✅ Pointcloud shape:", points_all.shape)
+print(points_all[:5])
+EOF
+
+python << EOF
+import numpy as np
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname])
+
+# Parse one frame
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+# ✅ Convert ALL lidar to 3D points (Waymo official helper)
+(points_xyz, cp_points, cp_pose) = frame_utils.convert_range_image_to_point_cloud(
+    frame,
+    # first return only (index 0)
+    frame_utils.LiDARReturnType.FIRST
+)
+
+# points_xyz is a list -> concatenate
+points = np.concatenate(points_xyz, axis=0)
+
+print("✅ 3D LiDAR points:", points.shape)
+print(points[:5])
+EOF
+
+python << EOF
+import numpy as np
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils
+
+# Load first frame
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname])
+
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+# ✅ Use the correct Waymo LiDAR return enum
+(points_xyz, cp_points, cp_pose) = frame_utils.convert_range_image_to_point_cloud(
+    frame,
+    open_dataset.LiDARReturnType.FIRST
+)
+
+# concat all lidar returns
+points = np.concatenate(points_xyz, axis=0)
+
+print("✅ 3D LiDAR points:", points.shape)
+print(points[:5])
+EOF
+
+python << EOF
+import numpy as np
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils
+
+# Load one frame
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname])
+
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+# ✅ Use return type from LaserName enum (Waymo 1.6 style)
+(points_xyz, cp_points, pose) = frame_utils.convert_range_image_to_point_cloud(
+    frame,
+    open_dataset.LaserName.TOP  # <- correct reference
+)
+
+# Combine all lidar points from all returns
+points = np.concatenate(points_xyz, axis=0)
+
+print("✅ LiDAR points shape:", points.shape)
+print(points[:5])
+EOF
+
+python << EOF
+import numpy as np
+import tensorflow as tf
+
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils, range_image_utils
+
+# Load one Waymo file
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname])
+
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+# ✅ Step 1: Parse range image & camera projection
+(range_images, camera_projections, segmentation_labels, range_image_top_pose) =     frame_utils.parse_range_image_and_camera_projection(frame)
+
+# ✅ Step 2: Convert range image → point cloud
+points_list = []
+cp_list = []
+
+for lidar_id, laser in enumerate(frame.lasers):
+    # Take the FIRST return only
+    if laser.name == open_dataset.LaserName.TOP:
+        ri = range_images[lidar_id][0]   # return idx 0 = first return
+        ri_tensor = tf.reshape(tf.convert_to_tensor(ri.data), [ri.shape.dims[0], ri.shape.dims[1], ri.shape.dims[2]])
+
+        # Compute point cloud
+        points, cp = range_image_utils.compute_range_image_point_cloud(
+            frame,
+            range_images,
+            camera_projections,
+            range_image_top_pose,
+            ri_index=lidar_id
+        )
+
+        points_list.append(points)
+        cp_list.append(cp)
+
+# ✅ Merge all points
+points = np.concatenate(points_list, axis=0)
+
+print("✅ LiDAR point cloud shape:", points.shape)
+print(points[:5])
+EOF
+
+python << EOF
+import numpy as np
+import tensorflow as tf
+
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils, range_image_utils
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname])
+
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+# Parse range image & projection
+range_images, camera_projections, segmentation_labels, range_image_top_pose =     frame_utils.parse_range_image_and_camera_projection(frame)
+
+points_list = []
+cp_list = []
+
+for lidar_id, laser in enumerate(frame.lasers):
+    ri_dict = range_images[lidar_id]  # dict keyed by return index
+
+    # Print available returns
+    print(f"LiDAR {lidar_id} ({open_dataset.LaserName.Name.Name(laser.name)}) returns:", list(ri_dict.keys()))
+
+    # Use FIRST available return
+    available_returns = sorted(ri_dict.keys())
+    if not available_returns:
+        continue
+    ret = available_returns[0]
+
+    ri = ri_dict[ret]  # pick the available return
+    ri_tensor = tf.reshape(tf.convert_to_tensor(ri.data), 
+                           [ri.shape.dims[0], ri.shape.dims[1], ri.shape.dims[2]])
+
+    # Compute point cloud
+    points, cp = range_image_utils.compute_range_image_point_cloud(
+        frame,
+        range_images,
+        camera_projections,
+        range_image_top_pose,
+        ri_index=lidar_id
+    )
+
+    points_list.append(points)
+    cp_list.append(cp)
+
+points = np.concatenate(points_list, axis=0)
+print("✅ Point cloud shape:", points.shape)
+print(points[:5])
+EOF
+
+python << EOF
+import numpy as np
+import tensorflow as tf
+
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils, range_image_utils
+
+# Load frame
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname])
+
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+# Parse lidar structures
+range_images, camera_projections, seg_labels, range_image_top_pose =     frame_utils.parse_range_image_and_camera_projection(frame)
+
+points_list = []
+cp_list = []
+
+for lidar_id, laser in enumerate(frame.lasers):
+
+    # Returns present for this LiDAR sensor
+    returns_available = sorted(range_images[lidar_id].keys())
+    print(f"LiDAR {open_dataset.LaserName.Name.Name(laser.name)} has returns: {returns_available}")
+
+    # Use all available returns, not assuming 0
+    for ret in returns_available:
+        ri = range_images[lidar_id][ret]
+
+        # Convert to tensor with the right shape
+        ri_tensor = tf.reshape(
+            tf.convert_to_tensor(ri.data),
+            [ri.shape.dims[0], ri.shape.dims[1], ri.shape.dims[2]]
+        )
+
+        # Compute points
+        pts, cp = range_image_utils.compute_range_image_point_cloud(
+            frame,
+            range_images,
+            camera_projections,
+            range_image_top_pose,
+            ri_index=lidar_id,
+            camera_projection_return=ret,
+        )
+
+        points_list.append(pts)
+        cp_list.append(cp)
+
+# Merge all returns
+points = np.concatenate(points_list, axis=0)
+print("✅ PointCloud shape:", points.shape)
+print(points[:5])
+EOF
+
+python << EOF
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils
+import tensorflow as tf
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname])
+
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+range_images, camera_projections, seg_labels, range_image_top_pose =     frame_utils.parse_range_image_and_camera_projection(frame)
+
+for lidar_id, laser in enumerate(frame.lasers):
+    returns_available = list(range_images[lidar_id].keys())
+    print(f"LIDAR {lidar_id} ({open_dataset.LaserName.Name(laser.name)}): returns = {returns_available}")
+EOF
+
+python << EOF
+import numpy as np
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils, range_image_utils
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname])
+
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+range_images, came_
+EOF
+
+python << EOF
+import numpy as np
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils, range_image_utils
+
+# Path to your TFRecord
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+
+# Read one frame
+dataset = tf.data.TFRecordDataset([fname])
+frame = open_dataset.Frame()
+for data in dataset.take(1):
+    frame.ParseFromString(data.numpy())
+
+print("Frame loaded. Cameras:", len(frame.images), " Lidars:", len(frame.lasers))
+
+# Parse LiDAR structure
+range_images, camera_projections, seg_labels, range_image_top_pose =     frame_utils.parse_range_image_and_camera_projection(frame)
+
+points_list = []
+
+for lidar_id, laser in enumerate(frame.lasers):
+    returns = sorted(range_images[lidar_id].keys())
+    name = open_dataset.LaserName.Name(laser.name)
+    print(f"LiDAR {name} -> returns available: {returns}")
+
+    for ret in returns:
+        ri = range_images[lidar_id][ret]
+
+        ri_tensor = tf.reshape(
+            tf.convert_to_tensor(ri.data),
+            [ri.shape.dims[0], ri.shape.dims[1], ri.shape.dims[2]]
+        )
+
+        pts, cp = range_image_utils.compute_range_image_point_cloud(
+            frame,
+            range_images,
+            camera_projections,
+            range_image_top_pose,
+            ri_index=lidar_id,
+            camera_projection_return=ret
+        )
+
+        points_list.append(pts)
+
+points = np.concatenate(points_list, axis=0)
+print("✅ PointCloud shape:", points.shape)
+print("✅ Sample points:", points[:5])
+EOF
+
+python << EOF
+
+
+python << EOF
+
+
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+EOF
+
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+EOF
+
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+EOF
+
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(1.5)   # seconds between images
+        plt.clf()
+EOF
+
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(5)   # seconds between images
+        plt.clf()
+EOF
+
+python << EOF
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import time
+
+fname = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+dataset = tf.data.TFRecordDataset([fname], compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    print(f"✅ Frame parsed ({len(frame.images)} cameras)")
+
+    for i, img in enumerate(frame.images):
+        image_np = tf.io.decode_jpeg(img.image).numpy()
+        plt.imshow(image_np)
+        plt.title(f"Camera {i}: {img.name}")
+        plt.axis('off')
+        plt.pause(15)   # seconds between images
+        plt.clf()
+
+EOF
+
+exit
+conda activate waymo
+exit
+conda activate waymo
+python3 -v
+pip show tensorflow |egrep version
+pip show tensorflow |grep version
+python3 -v
+python3 --version
+pip show tensorflow|grep Version
+conda deactivate
+conda env remove -n waymo
+exit
+conda create -n waymo python=3.10 -y
+conda activate waymo
+pip install --upgrade pip
+pip install   tensorflow==2.11   numpy==1.23.5   protobuf==3.19.6   pillow==9.4.0   matplotlib   tqdm   pandas
+cd ~
+curl -O https://storage.googleapis.com/waymo_open_dataset/tf_2_11_0/waymo_open_dataset_tf_2_11_0-1.6.1-py3-none-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+ls
+ls -lh
+ls
+pwd
+ls *.whl
+ls -l *.whl
+pwd
+ls /mnt/n/waymo_comma/waymo/
+pip download waymo-open-dataset-tf-2-11-0==1.6.1
+pip install --no-deps ./waymo_open_dataset_tf_2_11_0-1.6.1-py3-none-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+ls -l waymo_*w*
+rm waymo_open_dataset-1.6.1-tf2.11.whl 
+rm waymo_open_dataset-1.6.1.whl 
+rm waymo_open_dataset_tf_2_11_0-1.6.1-cp310-cp310-manylinux2014_x86_64.whl 
+ls -l waymo_*w*
+pip install --force-reinstall ./waymo_open_dataset_tf_2_11_0-1.6.1-py3-none-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+python3 - << 'EOF'
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import tensorflow as tf
+import numpy as np
+
+print("Waymo Frame OK:", hasattr(open_dataset, "Frame"))
+print("TensorFlow:", tf.__version__)
+print("NumPy:", np.__version__)
+EOF
+
+pip install --force-reinstall "protobuf==3.19.6"
+pip show protobuf
+pip uninstall -y protobuf waymo-open-dataset waymo_open_dataset
+rm -rf ~/.local/lib/python3.10/site-packages/protobuf*
+rm -rf ~/.local/lib/python3.10/site-packages/waymo*
+pip install ./waymo_open_dataset_tf_2_11_0-1.6.1-py3-none-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+python3 - << 'EOF'
+import google.protobuf
+print("protobuf path:", google.protobuf.__file__)
+from waymo_open_dataset import dataset_pb2 as open_dataset
+print("Frame exists?", hasattr(open_dataset, "Frame"))
+EOF
+
+python3 << EOF
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+
+file = "/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00010-of-00266”
+
+dataset = tf.data.TFRecordDataset(file, compression_type='')
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(bytearray(data.numpy()))
+    print("Frame timestamp:", frame.timestamp_micros)
+    print("Cameras:", len(frame.images))
+    print("Lidar points:", len(frame.lasers))
+EOF
+
+python3
+python3 << EOF
+python3 << EOF import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+
+file = "/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00010-of-00266”
+
+dataset = tf.data.TFRecordDataset(file, compression_type='')
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(bytearray(data.numpy()))
+    print("Frame timestamp:", frame.timestamp_micros)
+    print("Cameras:", len(frame.images))
+    print("Lidar points:", len(frame.lasers))
+EOF
+
+python3 << EOF
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+
+file = "/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00010-of-00266”
+
+dataset = tf.data.TFRecordDataset(file, compression_type='')
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(bytearray(data.numpy()))
+    print("Frame timestamp:", frame.timestamp_micros)
+    print("Cameras:", len(frame.images))
+    print("Lidar points:", len(frame.lasers))
+EOF
+
+python3 << 'EOF'
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+
+file = "/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00010-of-00266"
+
+dataset = tf.data.TFRecordDataset(file, compression_type='')
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(bytearray(data.numpy()))
+    print("Frame timestamp:", frame.timestamp_micros)
+    print("Cameras:", len(frame.images))
+    print("Lidar points:", len(frame.lasers))
+EOF
+
+ls /mnt/n/waymo_comma/waymo/
+ls -l /mnt/n/waymo_comma/waymo/
+python << EOF
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import tensorflow as tf
+
+file = "/mnt/n/waymo_comma/waymo/individual_files_validation_segment-10203656353524179475_7625_000_7645_000_with_camera_labels.tfrecord"
+
+dataset = tf.data.TFRecordDataset(file, compression_type='')
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+    
+    print("✅ Parsed Waymo Frame OK")
+    print("Timestamp:", frame.timestamp_micros)
+    print("Num cameras:", len(frame.images))
+    print("Num lidars:", len(frame.lasers))
+EOF
+
+file /mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00000-of-00266
+head -c 64 /mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00000-of-00266 | hexdump -C
+python << EOF
+import tensorflow as tf
+from waymo_open_dataset.protos import scenario_pb2
+
+file = "/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00000-of-00266"
+
+dataset = tf.data.TFRecordDataset(file)
+
+for record in dataset.take(1):
+    scenario = scenario_pb2.Scenario()
+    scenario.ParseFromString(record.numpy())
+
+    print("Scenario ID:", scenario.scenario_id)
+    print("Num tracks:", len(scenario.tracks))
+    print("Num prediction points:", len(scenario.timestamps_seconds))
+    print("Num lanes:", len(scenario.map_features))
+EOF
+
+python << EOF
+from waymo_open_dataset.protos import interaction_dataset_pb2
+import tensorflow as tf
+
+file = "/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00000-of-00266"
+
+dataset = tf.data.TFRecordDataset(file)
+
+for rec in dataset.take(1):
+    msg = interaction_dataset_pb2.Interaction()
+    msg.ParseFromString(rec.numpy())
+    print("✅ Interaction parsed")
+    print("Scenario id:", msg.scenario_id)
+    print("Agents:", len(msg.objects))
+    print("Road graph:", len(msg.map_features))
+EOF
+
+ls ~
+cd ~
+git clone https://github.com/waymo-research/waymo-open-dataset.git
+cd waymo-open-dataset
+mkdir -p ~/waymo_protos/waymo_open_dataset/protos
+cp waymo_open_dataset/protos/interaction_dataset.proto ~/waymo_protos/waymo_open_dataset/protos/
+ls ~/waymo_protos/waymo_open_dataset/protos/
+git clone https://github.com/waymo-research/waymo-open-dataset.git
+cd waymo-open-dataset
+mkdir -p ~/waymo_protos/waymo_open_dataset/protos
+cp waymo_open_dataset/waymo_open_dataset/protos/motion_dataset.proto    ~/waymo_protos/waymo_open_dataset/protos/
+ls
+ls src
+ls src/waymo_open_dataset/protos/
+ls
+mkdir -p ~/waymo_protos/waymo_open_dataset/protos/
+cp -r src/waymo_open_dataset/protos/*.proto ~/waymo_protos/waymo_open_dataset/protos/
+cd ~/waymo_protos
+protoc --python_out=. waymo_open_dataset/protos/*.proto
+sudo apt update
+sudo apt install -y protobuf-compiler
+protoc --version
+cd ~/waymo_protos
+protoc --python_out=. waymo_open_dataset/protos/*.proto
+ls waymo_open_dataset/protos/
+pwd
+ls
+cd ..
+ls
+pwd
+ls
+
+ls waymo_open_dataset/protos/
+
+ls
+ls waymo_protos/
+ls waymo_protos/waymo_open_dataset/protos
+ls src/waymo_open_dataset/protos/
+ls
+ls waymo-open-dataset/src/waymo_open_dataset/protos/
+ls
+ls waymo-open-dataset/src/waymo_open_dataset/protos/
+ls waymo_protos/
+ls waymo_protos/waymo_open_dataset/protos/
+pef
+pwd
+ls waymo_protos/
+pwd
+ls waymo_protos/waymo_open_dataset/protos/
+ls waymo-open-dataset/src/waymo_open_dataset/protos/
+cd ~/waymo-open-dataset/waymo-open-dataset/src
+mkdir -p ~/waymo_protos/waymo_open_dataset/protos
+cp -r waymo_open_dataset/protos/* ~/waymo_protos/waymo_open_dataset/protos/
+cd ~/waymo_protos
+protoc   --proto_path=.   --python_out=.   waymo_open_dataset/protos/motion_metrics.proto   waymo_open_dataset/protos/motion_submission.proto   waymo_open_dataset/protos/scenario.proto
+python3 << 'EOF'
+from waymo_open_dataset.protos import scenario_pb2, motion_metrics_pb2, motion_submission_pb2
+
+print("✅ Motion proto load success")
+s = scenario_pb2.Scenario()
+print(type(s))
+EOF
+
+cd ..
+ls
+python3 << 'EOF'
+from waymo_open_dataset.protos import scenario_pb2, motion_metrics_pb2, motion_submission_pb2
+
+print("✅ Motion proto load success")
+s = scenario_pb2.Scenario()
+print(type(s))
+EOF
+
+python3 << 'EOF'
+import tensorflow as tf
+from waymo_open_dataset.protos import scenario_pb2
+
+file = "/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00000-of-00266"
+
+ds = tf.data.TFRecordDataset(file, compression_type="")
+for raw in ds.take(1):
+    scenario = scenario_pb2.Scenario()
+    scenario.ParseFromString(raw.numpy())
+    print("✅ Scenario parsed!")
+    print("ID:", scenario.scenario_id)
+    print("Agents:", len(scenario.tracks))
+    print("Road graph points:", len(scenario.roadgraph_points))
+EOF
+
+pwd
+ls
+pwd
+ls
+ls waymo-open-dataset/
+ls waymo_protos/
+ls waymo_env
+pwd
+ls waymo_env
+exit
+ls
+pwd
+ls
+echo $HOME
+pwd
+cd ~
+ls
+conda create -n waymo_full python=3.10 -y
+conda activate waymo_full
+ls
+pwd
+exit
+ls
+cd ~
+ls
+conda create -n waymo_full python=3.10 -y
+conda activate waymo_full
+pip install tensorflow==2.12.1
+pip install waymo-open-dataset-tf-2-12-0==1.6.7
+python3 << 'EOF'
+from waymo_open_dataset import dataset_pb2, label_pb2
+from waymo_open_dataset.utils import range_image_utils
+import tensorflow as tf
+
+print("✅ Waymo installed")
+print(tf.__version__)
+print(hasattr(dataset_pb2, "Frame"))
+EOF
+
+python << EOF
+python <<EOF
+/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00010-of-00266 
+
+python << EOF
+
+dataset = tf.data.TFRecordDataset("/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00010-of-00266", compression_type="")
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(bytearray(data.numpy()))
+
+print(len(frame.images))
+print(len(frame.lasers))
+print(frame.lasers[0].ri_return1)  # raw LiDAR range image
+EOF
+
+python << EOF
+Import tensorflow as tf
+dataset = tf.data.TFRecordDataset("/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00010-of-00266", compression_type="")
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(bytearray(data.numpy()))
+
+print(len(frame.images))
+print(len(frame.lasers))
+print(frame.lasers[0].ri_return1)  # raw LiDAR range image
+EOF
+
+python << EOF
+import tensorflow as tf
+dataset = tf.data.TFRecordDataset("/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00010-of-00266", compression_type="")
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(bytearray(data.numpy()))
+
+print(len(frame.images))
+print(len(frame.lasers))
+print(frame.lasers[0].ri_return1)  # raw LiDAR range image
+EOF
+
+python << EOF
+
+from waymo_open_dataset import dataset_pb2 as open_dataset
+import tensorflow as tf
+import numpy as np
+
+print("✅ TensorFlow:", tf.__version__)
+print("✅ NumPy:", np.__version__)
+print("✅ Frame proto exists:", hasattr(open_dataset, "Frame"))
+EOF
+
+pip install --upgrade typing-extensions==4.12.2
+python3 << 'EOF'
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+
+file = "/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00000-of-00266"
+dataset = tf.data.TFRecordDataset(file, compression_type="")
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(bytearray(data.numpy()))
+    print("✅ Frame parsed")
+    print("Timestamp:", frame.timestamp_micros)
+    print("Cameras:", len(frame.images))
+    print("LiDAR sensors:", len(frame.lasers))
+EOF
+
+python3 << 'EOF'
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+
+file = "/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00000-of-00266"
+dataset = tf.data.TFRecordDataset(file, compression_type="")
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())   # ✅ NO bytearray()
+    print("✅ Frame parsed")
+    print("Timestamp:", frame.timestamp_micros)
+    print("Cameras:", len(frame.images))
+    print("LiDAR sensors:", len(frame.lasers))
+EOF
+
+python3 << 'EOF'
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+
+file = "/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00000-of-00266"
+dataset = tf.data.TFRecordDataset(file, compression_type="")
+
+data = next(iter(dataset))
+try:
+    f = open_dataset.Frame()
+    f.ParseFromString(data.numpy())
+    print("✅ This is a FRAME file")
+except:
+    try:
+        s = open_dataset.Scenario()
+        s.ParseFromString(data.numpy())
+        print("✅ This is a SCENARIO file")
+    except:
+        print("❌ Unknown TFRecord type")
+EOF
+
+python << EOF
+import tensorflow as tf
+
+file="/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00000-of-00266"
+ds = tf.data.TFRecordDataset(file)
+
+for i, x in enumerate(ds.take(5)):
+    print(i, len(x.numpy()), x.numpy()[:16])
+EOF
+
+pwd
+emacs wod_frame_quickcheck.py&
+cat > wod_frame_quickcheck.py
+python wod_frame_quickcheck.py 
+emacs wod_frame_quickcheck.py&
+python wod_frame_quickcheck.py 
+python << EOF
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.protos import scenario_pb2
+import tensorflow as tf
+
+fname = "/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00000-of-00266"
+ds = tf.data.TFRecordDataset(fname)
+
+for r in ds.take(5):
+    b = bytes(r.numpy())
+    try:
+        f = open_dataset.Frame()
+        f.ParseFromString(b)
+        print("✅ Frame | cams:", len(f.images), "lidars:", len(f.lasers))
+        continue
+    except:
+        pass
+
+    try:
+        s = scenario_pb2.Scenario()
+        s.ParseFromString(b)
+        print("✅ Scenario | agents:", len(s.tracks), "steps:", len(s.timestamps_seconds))
+        continue
+    except:
+        pass
+
+    print("❓ Unknown record type")
+EOF
+
+python << EOF
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.protos import scenario_pb2
+import tensorflow as tf
+
+fname = "/mnt/n/waymo_comma/waymo/test_202504211836-202504220845.tfrecord-00000-of-00266"
+ds = tf.data.TFRecordDataset(fname)
+
+for i, r in enumerate(ds.take(20)):
+    b = bytes(r.numpy())
+    
+    # Try Frame
+    f = open_dataset.Frame()
+    try:
+        f.ParseFromString(b)
+        if len(f.images) > 0 or len(f.lasers) > 0:
+            print(f"[{i}] ✅ FRAME | cams={len(f.images)}, lidars={len(f.lasers)}")
+            continue
+    except:
+        pass
+
+    # Try Scenario
+    s = scenario_pb2.Scenario()
+    try:
+        s.ParseFromString(b)
+        if len(s.tracks) > 0:
+            print(f"[{i}] ✅ SCENARIO | agents={len(s.tracks)}, steps={len(s.timestamps_seconds)}")
+        else:
+            print(f"[{i}] ⚠ Scenario with 0 agents, steps={len(s.timestamps_seconds)} (skipped)")
+        continue
+    except:
+        pass
+
+    print(f"[{i}] ❓ Unknown record")
+EOF
+
+ls
+cat > wod_frame_quickcheck.py
+python wod_frame_quickcheck.py
+emacs wod_frame_quickcheck.py&
+python wod_frame_quickcheck.py 
+cd /mnt/n/waymo_comma/waymo
+wget "https://storage.googleapis.com/<token>/test_202504211836-202504220845.tfrecord-00020-of-00266"
+wget "https://storage.googleapis.com/<token>/test_202504211836-202504220845.tfrecord-00040-of-00266"
+wget "https://storage.googleapis.com/<token>/test_202504211836-202504220845.tfrecord-00060-of-00266"
+ls -lh /mnt/n/waymo_comma/waymo | grep tfrecord\
+pip install waymo-open-dataset-tf-2-13-0==1.6.7 tensorflow==2.13.0 protobuf==3.20.3 matplotlib opencv-python scikit-image
+cat > wod_read_frame.py
+ls -l wod*
+cd
+ls wod_frame_quickcheck.py
+cat > wod_read_frame.py
+python wod_read_frame.py 
+cat > wod_viz.py
+mv wod_viz.py wod_vis.py
+which python
+python --version
+python wod_vis.py 
+emacs wod_vis.py &
+cat > temp
+rm temp 
+ls
+python wod_vis.py 
+cat wod_vis.py
+python wod_vis.py 
+pwd
+ls
+ls -l /mnt/n/waymo_comma/waymo/
+python << EOF
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+
+file = "/mnt/n/waymo_comma/waymo/uncompressed_lidar_and_camera_training_100006d9c3e93b6e"
+
+dataset = tf.data.TFRecordDataset(file, compression_type="")
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+
+    print("Timestamp:", frame.timestamp_micros)
+    print("Cameras:", len(frame.images))
+    print("LiDARs:", len(frame.lasers))
+    print("3D labels:", len(frame.laser_labels))
+EOF
+
+ls /mnt/n/waymo_comma/waymo/uncompressed_lidar_and_camera_training_100006d9c3e93b6e.tfrecord 
+python << EOF
+import tensorflow as tf
+from waymo_open_dataset import dataset_pb2 as open_dataset
+
+file = "/mnt/n/waymo_comma/waymo/uncompressed_lidar_and_camera_training_100006d9c3e93b6e.tfrecord"
+
+dataset = tf.data.TFRecordDataset(file, compression_type="")
+
+for data in dataset.take(1):
+    frame = open_dataset.Frame()
+    frame.ParseFromString(data.numpy())
+
+    print("Timestamp:", frame.timestamp_micros)
+    print("Cameras:", len(frame.images))
+    print("LiDARs:", len(frame.lasers))
+    print("3D labels:", len(frame.laser_labels))
+EOF
+
+conda deactivate
+pwd
+ls
+exit
+ls
+cd ~
+ls
+tail .bashrc
+ls -l .bashrc
+conda activate waymo_full
+ls
+ls waymo_env
+exit

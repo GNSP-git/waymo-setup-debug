@@ -1,0 +1,423 @@
+# plot_close_tubes.py
+# Step 1: one file → build trajectories from laser OBBs, find close pairs in Δt, plot XY + space-time.
+# Tested with TF 2.11 + Waymo Open Dataset 1.6.x (WSL), works with your patched env.
+
+import os, math, itertools, time, inspect
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import tensorflow as tf
+
+from waymo_open_dataset import dataset_pb2 as open_dataset
+from waymo_open_dataset.utils import frame_utils
+
+# ---------- CONFIG ----------
+FILE = "/mnt/n/waymo_comma/waymo/individual_files_training_segment-10107710434105775874_760_000_780_000_with_camera_labels.tfrecord"
+                                 
+SAVE_DIR = "/home/gns/waymo_work/data/samples"
+os.makedirs(SAVE_DIR, exist_ok=True)
+
+DIST_THRESH = 10.0     # meters
+TIME_THRESH = 0.1      # seconds
+MAX_PAIRS   = 5        # show up to 5 closest pairs
+SHOW_SEC    = 5.0      # show each figure for ~5 s non-blocking
+
+# ---------- Try OBB distance extension ----------
+USE_OBB = True
+try:
+    import obb_distance
+except Exception:
+    USE_OBB = False
+    print("ℹ️ obb_distance not found; falling back to center-distance.")
+
+# ---------- Find the Label enum in version-agnostic way ----------
+Label = None
+for name, obj in inspect.getmembers(open_dataset):
+    if name.lower().endswith("label"):
+        Label = obj
+        break
+if Label is None:
+    raise ImportError("Could not locate Label class in waymo_open_dataset.dataset_pb2")
+
+# Type map (robust to enum names)
+TYPE_NAMES = {}
+for attr in dir(Label):
+    if attr.startswith("TYPE_"):
+        TYPE_NAMES[getattr(Label, attr)] = attr.replace("TYPE_", "").title()
+
+# Default dims if missing/zero
+DEFAULT_DIMS = {
+    "Vehicle": (4.5, 1.8, 1.6),
+    "Pedestrian": (0.6, 0.6, 1.7),
+    "Cyclist": (1.8, 0.6, 1.6),
+    "Sign": (1.0, 0.5, 3.0),
+    "Unknown": (1.0, 1.0, 1.0),
+}
+CLASS_COLOR = {
+    "Vehicle": "#1f77b4",
+    "Pedestrian": "#2ca02c",
+    "Cyclist": "#ff7f0e",
+    "Sign": "#9467bd",
+    "Unknown": "#7f7f7f",
+}
+
+# ---------- Helpers ----------
+def label_type_name(t):
+    # Prefer explicit mapping if known
+    name = TYPE_NAMES.get(t)
+    if name:
+        # Normalize capitalization (Vehicle, Pedestrian, Sign, Cyclist, Unknown)
+        if name.lower().startswith("vehicle"):    return "Vehicle"
+        if name.lower().startswith("pedestrian"): return "Pedestrian"
+        if name.lower().startswith("cyclist"):    return "Cyclist"
+        if name.lower().startswith("sign"):       return "Sign"
+        return name.title()
+    # fallback by integer constants commonly seen (1–4)
+    if t == 1: return "Vehicle"
+    if t == 2: return "Pedestrian"
+    if t == 3: return "Sign"
+    if t == 4: return "Cyclist"
+    return "Unknown"
+
+def ensure_dims(name, L, W, H):
+    if (L or 0) > 0 and (W or 0) > 0 and (H or 0) > 0:
+        return L, W, H
+    base = DEFAULT_DIMS.get(name, DEFAULT_DIMS["Unknown"])
+    return base
+
+def obb_rect_xy(cx, cy, length, width, heading):
+    # rectangle centered at (cx,cy) of L×W rotated by heading (radians)
+    hl, hw = 0.5 * length, 0.5 * width
+    local = np.array([[-hl, -hw],
+                      [ hl, -hw],
+                      [ hl,  hw],
+                      [-hl,  hw]], dtype=np.float32)
+    c, s = math.cos(heading), math.sin(heading)
+    R = np.array([[c, -s],[s, c]], dtype=np.float32)
+    pts = local @ R.T
+    pts[:,0] += cx; pts[:,1] += cy
+    return pts  # (4,2)
+
+def pair_distance(a, b):
+    if USE_OBB:
+        return obb_distance.obb_min_distance(
+            a["cx"], a["cy"], a["length"], a["width"], a["heading"],
+            b["cx"], b["cy"], b["length"], b["width"], b["heading"]
+        )
+    # fallback: Euclidean center distance (conservative underestimate of OBB min dist)
+    dx = a["cx"] - b["cx"]; dy = a["cy"] - b["cy"]
+    return math.hypot(dx, dy)
+
+def collect_trajectories(file_path):
+    """
+    Returns:
+      trajs: dict[obj_id] -> list of dict(t, cx, cy, heading, length, width, height, type_name)
+      t0: first timestamp (s)
+    """
+    trajs = {}
+    t0 = None
+    ds = tf.data.TFRecordDataset(file_path, compression_type="")
+    for raw in ds:
+        frame = open_dataset.Frame()
+        frame.ParseFromString(raw.numpy())
+        t = frame.timestamp_micros * 1e-6
+        if t0 is None: t0 = t
+
+        for lab in frame.laser_labels:
+            oid = lab.id  # unique per object over the sequence
+            name = label_type_name(lab.type)
+            box = lab.box
+            L, W, H = ensure_dims(name, box.length, box.width, box.height)
+            rec = {
+                "t": t,
+                "cx": box.center_x,
+                "cy": box.center_y,
+                "heading": box.heading,
+                "length": L,
+                "width": W,
+                "height": H,
+                "type": name,
+                "id": oid,
+            }
+            trajs.setdefault(oid, []).append(rec)
+
+    # sort each trajectory by time
+    for oid in trajs:
+        trajs[oid].sort(key=lambda r: r["t"])
+    return trajs, t0 if t0 is not None else 0.0
+
+def find_close_pairs(trajs, dist_thresh, time_thresh, max_pairs):
+    """
+    Scan frames in time; for each time snapshot, keep only 'Vehicle' records,
+    then compute pairwise OBB distances and retain closest per pair over all time.
+    """
+    times = sorted({rec["t"] for arr in trajs.values() for rec in arr})
+
+    time_index = []
+    half = time_thresh * 0.5
+    for t in times:
+        snapshot = []
+        for oid, arr in trajs.items():
+            # nearest record within ±half
+            best = None; best_dt = 1e9
+            for rec in arr:
+                dt = abs(rec["t"] - t)
+                if dt < best_dt and dt <= half:
+                    best_dt = dt; best = rec
+            if best is not None and best["type"] == "Vehicle":  # vehicle-only HERE
+                snapshot.append(best)
+        time_index.append((t, snapshot))
+
+    best_per_pair = {}  # (oid_i, oid_j) -> (d_min, t_at, rec_i, rec_j)
+    # Debug helpers
+    seen_any = False
+    for t, records in time_index:
+        if not records:
+            continue
+        # quick debug: per-snapshot vehicle count and min center distance
+        if len(records) >= 2:
+            # compute a fast min center-distance just for instrumentation
+            mins = []
+            for i, j in itertools.combinations(range(len(records)), 2):
+                a, b = records[i], records[j]
+                dx = a["cx"] - b["cx"]; dy = a["cy"] - b["cy"]
+                mins.append(math.hypot(dx, dy))
+            if mins:
+                dbg_min = min(mins)
+                # Only print occasionally to avoid spam
+                if dbg_min < dist_thresh * 3:
+                    print(f"[t={t:.3f}] vehicles={len(records)}, "
+                          f"min(center)≈{dbg_min:.2f} m")
+
+        # true OBB distance check
+        for i, j in itertools.combinations(range(len(records)), 2):
+            a, b = records[i], records[j]
+            d = pair_distance(a, b)
+            if d < dist_thresh:
+                seen_any = True
+                key = tuple(sorted((a["id"], b["id"])))
+                prev = best_per_pair.get(key)
+                if (prev is None) or (d < prev[0]):
+                    best_per_pair[key] = (d, t, a, b)
+
+    if not seen_any:
+        print("No Vehicle–Vehicle pairs found below threshold during scan.")
+        # As a hint, compute global min OBB distance among vehicles to guide thresholds
+        allD = []
+        for _, records in time_index:
+            for i, j in itertools.combinations(range(len(records)), 2):
+                a, b = records[i], records[j]
+                allD.append(pair_distance(a, b))
+        if allD:
+            print(f"Global min OBB distance among Vehicles ≈ {min(allD):.2f} m")
+        else:
+            print("No time snapshots had ≥2 vehicles present within the time window.")
+
+    ranked = sorted(
+        (
+            {"oid_i": k[0], "oid_j": k[1], "d_min": v[0], "t_at": v[1], "rec_i": v[2], "rec_j": v[3]}
+            for k, v in best_per_pair.items()
+        ),
+        key=lambda x: x["d_min"]
+    )
+    return ranked[:max_pairs]
+
+
+#includes "sign-sign" distances also - zero
+def find_close_pairs_all(trajs, dist_thresh, time_thresh, max_pairs):
+    """
+    Scan frames in time; for frames within time_thresh, compute pairwise OBB distances and
+    record pairs when d < dist_thresh. Keep closest per pair (min distance over time).
+    Returns: list of dict with keys: (oid_i, oid_j, d_min, t_at, rec_i, rec_j)
+    """
+    # Build a timeline of unique timestamps
+    times = sorted({rec["t"] for arr in trajs.values() for rec in arr})
+    # index trajectories by nearest time (within time_thresh)
+    # For speed, pre-build time->records list
+    time_index = []
+    for t in times:
+        snapshot = []
+        for oid, arr in trajs.items():
+            # find record with |dt|<=time_thresh/2 nearest to t
+            # (simple linear scan is fine for small sequences)
+            best = None; best_dt = 1e9
+            for rec in arr:
+                dt = abs(rec["t"] - t)
+                if dt < best_dt and dt <= time_thresh/2:
+                    best_dt = dt; best = rec
+            if best is not None:
+                snapshot.append(best)
+        time_index.append((t, snapshot))
+
+    best_per_pair = {}  # (oid_i,oid_j)->(d,t,rec_i,rec_j)
+    for t, records in time_index:
+        # pairwise on present records
+        for i, j in itertools.combinations(range(len(records)), 2):
+            a, b = records[i], records[j]
+            d = pair_distance(a, b)
+            if d < dist_thresh:
+                key = tuple(sorted((a["id"], b["id"])))
+                prev = best_per_pair.get(key)
+                if (prev is None) or (d < prev[0]):
+                    best_per_pair[key] = (d, t, a, b)
+
+    # sort by d ascending, limit
+    ranked = sorted(
+        ({"oid_i": k[0], "oid_j": k[1], "d_min": v[0], "t_at": v[1], "rec_i": v[2], "rec_j": v[3]}
+         for k, v in best_per_pair.items()),
+        key=lambda x: x["d_min"]
+    )
+    return ranked[:max_pairs]
+
+# ---------- Plotting ----------
+def draw_xy(ax, trajs, pair):
+    # Thick trajectories (all points of the two tracks)
+    for rec, lab in ((pair["rec_i"], "A"), (pair["rec_j"], "B")):
+        full = trajs[rec["id"]]
+        xs = [r["cx"] for r in full]; ys = [r["cy"] for r in full]
+        color = CLASS_COLOR.get(rec["type"], "#7f7f7f")
+        ax.plot(xs, ys, '-', linewidth=2.5, color=color, alpha=0.9, label=f'{lab}: {rec["type"]}')
+
+        # motion arrow at the closest instant
+        ax.quiver(rec["cx"], rec["cy"],
+                  math.cos(rec["heading"]), math.sin(rec["heading"]),
+                  angles='xy', scale_units='xy', scale=1.5, width=0.004, color=color)
+
+        # footprint at closest instant
+        poly = obb_rect_xy(rec["cx"], rec["cy"], rec["length"], rec["width"], rec["heading"])
+        ax.add_patch(Polygon(poly, closed=True, facecolor=color, alpha=0.25, edgecolor=color, linewidth=1.5))
+
+        # annotate id
+        ax.text(rec["cx"], rec["cy"], f'{lab}', fontsize=10, weight='bold', color=color)
+
+    ax.set_aspect('equal', adjustable='datalim')
+    ax.grid(True, linestyle='--', alpha=0.4)
+    ax.set_xlabel("X (m)")
+    ax.set_ylabel("Y (m)")
+    ax.set_title(f"XY footprints & paths at closest approach (d={pair['d_min']:.2f} m)")
+
+    # combine legend entries without duplicates
+    handles, labels = ax.get_legend_handles_labels()
+    uniq = dict(zip(labels, handles))
+    ax.legend(uniq.values(), uniq.keys(), loc='best')
+
+def draw_spacetime(ax3d, trajs, pair, t0):
+    # tubes = small vertical slabs around each pose sample
+    for rec, lab in ((pair["rec_i"], "A"), (pair["rec_j"], "B")):
+        full = trajs[rec["id"]]
+        color = CLASS_COLOR.get(rec["type"], "#7f7f7f")
+        # Plot thick trajectory in (x,y,t)
+        X = np.array([r["cx"] for r in full])
+        Y = np.array([r["cy"] for r in full])
+        T = np.array([r["t"] - t0 for r in full])
+        ax3d.plot3D(X, Y, T, color=color, linewidth=2.0, label=f'{lab}: {rec["type"]}')
+
+        # Add small translucent blocks (spacing every N to reduce clutter)
+        N = max(1, len(full)//30)
+        blocks = []
+        for idx, r in enumerate(full[::N]):
+            # small “tube slice” as an upright rectangular patch extruded in time
+            poly = obb_rect_xy(r["cx"], r["cy"], r["length"], r["width"], r["heading"])
+            z0 = (r["t"] - t0) - 0.03
+            z1 = (r["t"] - t0) + 0.03
+            # construct 8 vertices (4 bottom + 4 top)
+            bottom = [(poly[k,0], poly[k,1], z0) for k in range(4)]
+            top    = [(poly[k,0], poly[k,1], z1) for k in range(4)]
+            faces = [
+                [bottom[0], bottom[1], bottom[2], bottom[3]],
+                [top[0], top[1], top[2], top[3]],
+                [bottom[0], bottom[1], top[1], top[0]],
+                [bottom[1], bottom[2], top[2], top[1]],
+                [bottom[2], bottom[3], top[3], top[2]],
+                [bottom[3], bottom[0], top[0], top[3]],
+            ]
+            blocks.extend(faces)
+        if blocks:
+            pc = Poly3DCollection(blocks, facecolor=color, edgecolor=color, alpha=0.10, linewidths=0.3)
+            ax3d.add_collection3d(pc)
+
+    ax3d.set_xlabel("X (m)")
+    ax3d.set_ylabel("Y (m)")
+    ax3d.set_zlabel("t (s from first frame)")
+    ax3d.set_title("Space–time tubes (two closest tracks)")
+    ax3d.grid(True)
+
+def on_key_zoom(fig, ax_list):
+    def handler(event):
+        if event.key in ('z', 'Z'):
+            for ax in ax_list:
+                if hasattr(ax, 'get_xlim'):
+                    x0, x1 = ax.get_xlim(); y0, y1 = ax.get_ylim()
+                    cx = 0.5*(x0+x1); cy = 0.5*(y0+y1)
+                    sx = (x1-x0); sy = (y1-y0)
+                    if event.key == 'z':  # zoom in 20%
+                        sx *= 0.8; sy *= 0.8
+                    else:                 # zoom out 25%
+                        sx *= 1.25; sy *= 1.25
+                    ax.set_xlim(cx - sx/2, cx + sx/2)
+                    ax.set_ylim(cy - sy/2, cy + sy/2)
+            fig.canvas.draw_idle()
+    return handler
+
+def main():
+    print(f"▶ Building trajectories from {os.path.basename(FILE)} ...")
+    trajs, t0 = collect_trajectories(FILE)
+    type_counts = {}
+    for arr in trajs.values():
+        for r in arr:
+            type_counts[r["type"]] = type_counts.get(r["type"],0) + 1
+    print("Type Counts:", type_counts)
+    
+    n_tracks = len(trajs)
+    n_samples = sum(len(v) for v in trajs.values())
+    print(f"  Tracks: {n_tracks}, samples: {n_samples}")
+
+    pairs = find_close_pairs(trajs, DIST_THRESH, TIME_THRESH, MAX_PAIRS)
+    if not pairs:
+        print(f"  No pairs within {DIST_THRESH} m in any {TIME_THRESH}s window.")
+        return
+
+    # Take the closest pair
+    pair = pairs[0]
+    print(f"  Closest pair: {pair['oid_i']}–{pair['oid_j']} at t={pair['t_at']:.3f}s (d={pair['d_min']:.2f} m)")
+    print(f"    A: {pair['rec_i']['type']} dims(L×W×H)=({pair['rec_i']['length']:.2f}, {pair['rec_i']['width']:.2f}, {pair['rec_i']['height']:.2f})")
+    print(f"    B: {pair['rec_j']['type']} dims(L×W×H)=({pair['rec_j']['length']:.2f}, {pair['rec_j']['width']:.2f}, {pair['rec_j']['height']:.2f})")
+
+    # ---- end of main() ----
+    # ---- Figure 1: XY ----
+    fig_xy, ax_xy = plt.subplots(figsize=(7.5, 7.0))
+    draw_xy(ax_xy, trajs, pair)
+    fig_xy.canvas.mpl_connect('key_press_event', on_key_zoom(fig_xy, [ax_xy]))
+
+    out_xy = os.path.join(SAVE_DIR, "close_pair_xy.png")
+    plt.tight_layout()
+    # --- flash + save ---
+    plt.show(block=False)
+    plt.pause(SHOW_SEC)
+    fig_xy.savefig(out_xy, dpi=140, bbox_inches="tight")
+    plt.close(fig_xy)
+    print(f"  Saved XY: {out_xy}")
+
+    # ---- Figure 2: Space–time ----
+    fig_st = plt.figure(figsize=(8.5, 6.8))
+    ax3d = fig_st.add_subplot(111, projection='3d')
+    draw_spacetime(ax3d, trajs, pair, t0)
+    fig_st.canvas.mpl_connect('key_press_event', on_key_zoom(fig_st, [ax3d]))
+
+    out_st = os.path.join(SAVE_DIR, "close_pair_spacetime.png")
+    plt.tight_layout()
+    # --- flash + save ---
+    plt.show(block=False)
+    plt.pause(SHOW_SEC)
+    fig_st.savefig(out_st, dpi=140, bbox_inches="tight")
+    plt.close(fig_st)
+    print(f"  Saved space–time: {out_st}")
+
+    print("✅ Done (auto-flashed & saved).")
+
+    
+
+if __name__ == "__main__":
+    print("TensorFlow:", tf.__version__)
+    main()
