@@ -1,0 +1,365 @@
+#!/usr/bin/env python3
+"""
+GANAKA WORKLOAD EXTRACTOR – Single unified script
+-------------------------------------------------
+Loads ALL Waymo TFRecords in a directory, extracts trajectories,
+computes OBB→OBB minimum distances (fast Cython), finds Vehicle–Vehicle
+close approaches, saves a unified CSV workload, and provides visualization.
+
+Stages:
+  1. Trajectory extraction (all objects)
+  2. Pairwise V–V evaluation (OBB)
+  3. Ganaka workload accumulation
+  4. Visualization + walkaround
+  5. Hooks for:
+       - full vehicle geometry by model
+       - 2D/3D object geometry
+       - trajectory supersets + convex hulls (for I-structures)
+"""
+
+import os, glob, math, itertools, time, inspect, json
+from typing import Dict, List
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+
+import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+# -------------------------------
+# CONFIG
+# -------------------------------
+
+DATA_DIR   = "/mnt/n/waymo_comma/waymo"
+SAVE_DIR   = "/home/gns/waymo_work/data/samples"
+os.makedirs(SAVE_DIR, exist_ok=True)
+
+DIST_THRESH = 7.5          # meters (for close V–V)
+TIME_THRESH = 0.15         # seconds
+MAX_PAIRS_PER_FILE = 10
+SHOW_SEC = 5.0              # visualization flash
+
+FILES = sorted(glob.glob(os.path.join(DATA_DIR, "*_with_camera_labels.tfrecord")))
+print(f"Found {len(FILES)} TFRecord files")
+
+# -------------------------------
+# Load OBB distance extension
+# -------------------------------
+try:
+    import obb_distance
+    USE_OBB = True
+    print("Using optimized OBB module")
+except Exception:
+    USE_OBB = False
+    print("WARNING: No OBB extension – using center distances only")
+
+
+# -------------------------------
+# Waymo label resolution (robust)
+# -------------------------------
+from waymo_open_dataset import dataset_pb2 as open_dataset
+
+Label = None
+for name, obj in inspect.getmembers(open_dataset):
+    if name.lower().endswith("label"):
+        Label = obj
+if Label is None:
+    raise ImportError("Cannot find label type in dataset_pb2")
+
+TYPE_NAMES = {}
+for attr in dir(Label):
+    if attr.startswith("TYPE_"):
+        TYPE_NAMES[getattr(Label, attr)] = attr.replace("TYPE_", "").title()
+
+# Normalize → human types
+def normalize_type(name: str):
+    n = name.lower()
+    if "vehicle" in n: return "Vehicle"
+    if "pedestrian" in n: return "Pedestrian"
+    if "cyclist" in n: return "Cyclist"
+    if "sign" in n: return "Sign"
+    return "Unknown"
+
+
+# -------------------------------
+# Default object dimensions
+# -------------------------------
+DEFAULT_DIMS = {
+    "Vehicle": (4.5, 1.8, 1.6),
+    "Pedestrian": (0.6, 0.6, 1.7),
+    "Cyclist": (1.8, 0.6, 1.6),
+    "Sign": (1.0, 0.5, 3.0),
+    "Unknown": (1.0, 1.0, 1.0),
+}
+
+CLASS_COLOR = {
+    "Vehicle": "#1f77b4",
+    "Pedestrian": "#2ca02c",
+    "Cyclist": "#ff7f0e",
+    "Sign": "#9467bd",
+    "Unknown": "#7f7f7f",
+}
+
+def ensure_dims(type_name, L, W, H):
+    if L > 0 and W > 0 and H > 0:
+        return L, W, H
+    return DEFAULT_DIMS.get(type_name, DEFAULT_DIMS["Unknown"])
+
+
+# -------------------------------
+# Vehicle model geometry stub
+# -------------------------------
+def vehicle_geometry_lookup(model_name: str):
+    """
+    Stub: Return detailed polygon mesh for exact vehicle model.
+    Replace with real data later.
+    """
+    return None
+
+
+# -------------------------------
+# 2D/3D general object geometry stub
+# -------------------------------
+def general_object_geometry(obj_type: str, metadata=None):
+    """
+    Stub: For drones, buildings, construction cones, overhanging signs, etc.
+    """
+    return None
+
+
+# -------------------------------
+# convex-hull / I-structure stub
+# -------------------------------
+def trajectory_convex_hull(traj):
+    """
+    Stub: Return convex hull of trajectory for set-theoretic acceleration.
+    """
+    return None
+
+
+# -------------------------------
+# OBB helper: corners in XY
+# -------------------------------
+def obb_rect_xy(cx, cy, L, W, heading):
+    hl, hw = 0.5*L, 0.5*W
+    local = np.array([
+        [-hl, -hw],
+        [ hl, -hw],
+        [ hl,  hw],
+        [-hl,  hw],
+    ])
+    c, s = math.cos(heading), math.sin(heading)
+    R = np.array([[c,-s],[s,c]])
+    pts = local @ R.T
+    pts[:,0] += cx
+    pts[:,1] += cy
+    return pts
+
+
+# -------------------------------
+# OBB distance wrapper
+# -------------------------------
+def obb_dist(a, b):
+    if USE_OBB:
+        return obb_distance.obb_min_distance(
+            a["cx"], a["cy"], a["length"], a["width"], a["heading"],
+            b["cx"], b["cy"], b["length"], b["width"], b["heading"]
+        )
+    # fallback
+    return math.hypot(a["cx"]-b["cx"], a["cy"]-b["cy"])
+
+
+# -------------------------------
+# Stage 1 — Extract trajectories
+# -------------------------------
+def collect_trajectories(file_path):
+    trajs = {}
+    t0 = None
+    ds = tf.data.TFRecordDataset(file_path, compression_type="")
+    for raw in ds:
+        frame = open_dataset.Frame()
+        frame.ParseFromString(raw.numpy())
+        t = frame.timestamp_micros * 1e-6
+        if t0 is None:
+            t0 = t
+
+        for lab in frame.laser_labels:
+            typ = normalize_type(TYPE_NAMES.get(lab.type, "Unknown"))
+            box = lab.box
+            L, W, H = ensure_dims(typ, box.length, box.width, box.height)
+
+            rec = {
+                "t": t,
+                "cx": box.center_x,
+                "cy": box.center_y,
+                "heading": box.heading,
+                "length": L,
+                "width": W,
+                "height": H,
+                "type": typ,
+                "id": lab.id,
+            }
+            trajs.setdefault(lab.id, []).append(rec)
+
+    for k in trajs:
+        trajs[k].sort(key=lambda r: r["t"])
+
+    return trajs, (t0 if t0 else 0.0)
+
+
+# -------------------------------
+# Stage 2 — Find close V–V pairs
+# -------------------------------
+def find_close_pairs(trajs):
+    all_times = sorted({r["t"] for arr in trajs.values() for r in arr})
+    best_pairs = {}
+
+    for t in all_times:
+        # records within TIME_THRESH/2
+        snapshot = []
+        for oid, arr in trajs.items():
+            best = None; best_dt = 1e9
+            for rec in arr:
+                dt = abs(rec["t"] - t)
+                if dt < best_dt and dt <= TIME_THRESH/2:
+                    best_dt = dt; best = rec
+            if best:
+                snapshot.append(best)
+
+        # Vehicle–Vehicle only
+        veh = [r for r in snapshot if r["type"]=="Vehicle"]
+
+        for a,b in itertools.combinations(veh, 2):
+            d = obb_dist(a,b)
+            if d < DIST_THRESH:
+                key = tuple(sorted((a["id"], b["id"])))
+                prev = best_pairs.get(key)
+                if prev is None or d < prev[0]:
+                    best_pairs[key] = (d, t, a, b)
+
+    ranked = sorted([
+        {
+            "oid_i": k[0],
+            "oid_j": k[1],
+            "d_min": v[0],
+            "t_at" : v[1],
+            "rec_i": v[2],
+            "rec_j": v[3],
+        }
+        for k,v in best_pairs.items()
+    ], key=lambda x: x["d_min"])
+
+    return ranked[:MAX_PAIRS_PER_FILE]
+
+
+# -------------------------------
+# Visualization helpers
+# -------------------------------
+def red_circle(ax, x, y, r, lw=2):
+    circ = plt.Circle((x,y), r, color='red', fill=False, linewidth=lw)
+    ax.add_patch(circ)
+
+def draw_xy(ax, trajs, pair):
+    for rec, lab in [(pair["rec_i"],"A"), (pair["rec_j"],"B")]:
+        full = trajs[rec["id"]]
+        xs = [r["cx"] for r in full]
+        ys = [r["cy"] for r in full]
+        col = CLASS_COLOR[rec["type"]]
+
+        ax.plot(xs,ys,'-',color=col,linewidth=2,label=f"{lab}:{rec['type']}")
+
+        poly = obb_rect_xy(rec["cx"],rec["cy"],rec["length"],rec["width"],rec["heading"])
+        ax.add_patch(Polygon(poly,facecolor=col,edgecolor=col,alpha=0.25))
+
+        ax.quiver(rec["cx"],rec["cy"],math.cos(rec["heading"]),math.sin(rec["heading"]),
+                  angles='xy',scale_units='xy',scale=1.5,color=col,width=0.004)
+
+        ax.text(rec["cx"],rec["cy"],lab,color=col,weight="bold")
+
+    ax.set_aspect("equal")
+    ax.set_title(f"Closest: d={pair['d_min']:.2f} m")
+    ax.grid(True,linestyle="--",alpha=0.4)
+
+
+def draw_spacetime(ax3d, trajs, pair, t0):
+    for rec, lab in [(pair["rec_i"],"A"),(pair["rec_j"],"B")]:
+        full = trajs[rec["id"]]
+        X = np.array([r["cx"] for r in full])
+        Y = np.array([r["cy"] for r in full])
+        T = np.array([r["t"]-t0 for r in full])
+
+        col = CLASS_COLOR[rec["type"]]
+        ax3d.plot3D(X,Y,T,color=col,linewidth=2,label=f"{lab}:{rec['type']}")
+
+    ax3d.set_title("Space–Time Tubes")
+    ax3d.set_xlabel("X")
+    ax3d.set_ylabel("Y")
+    ax3d.set_zlabel("t (s)")
+
+
+# -------------------------------
+# Visualization trigger
+# -------------------------------
+def visualize_pair(file, trajs, pair, t0):
+    fig,ax = plt.subplots(figsize=(7,7))
+    draw_xy(ax,trajs,pair)
+    red_circle(ax, pair["rec_i"]["cx"], pair["rec_i"]["cy"], 3.0)
+    plt.tight_layout()
+    plt.show(block=False)
+    plt.pause(SHOW_SEC)
+    fig.savefig(os.path.join(SAVE_DIR,f"{file}_xy.png"),dpi=130)
+    plt.close(fig)
+
+    fig = plt.figure(figsize=(8,7))
+    ax3d = fig.add_subplot(111,projection='3d')
+    draw_spacetime(ax3d,trajs,pair,t0)
+    plt.tight_layout()
+    plt.show(block=False)
+    plt.pause(SHOW_SEC)
+    fig.savefig(os.path.join(SAVE_DIR,f"{file}_st.png"),dpi=130)
+    plt.close(fig)
+
+
+# -------------------------------
+# MAIN
+# -------------------------------
+def main():
+    all_results = []
+
+    for f in FILES:
+        fname = os.path.basename(f)
+        print(f"\n=== File: {fname} ===")
+
+        trajs, t0 = collect_trajectories(f)
+        print(f"Tracks={len(trajs)}, samples={sum(len(v) for v in trajs.values())}")
+
+        pairs = find_close_pairs(trajs)
+        if not pairs:
+            print("No V–V close pairs")
+            continue
+
+        for p in pairs:
+            all_results.append({
+                "file"   : fname,
+                "oid_i"  : p["oid_i"],
+                "oid_j"  : p["oid_j"],
+                "d_min"  : p["d_min"],
+                "t_rel"  : p["t_at"] - t0,
+                "type_i" : p["rec_i"]["type"],
+                "type_j" : p["rec_j"]["type"],
+            })
+
+        # visualize the closest pair in this file
+        visualize_pair(fname, trajs, pairs[0], t0)
+
+    # Save workload
+    out_csv = os.path.join(SAVE_DIR,"ganaka_workload_samples.csv.gz")
+    pd.DataFrame(all_results).to_csv(out_csv, index=False)
+    print("\nSaved:", out_csv)
+    print("ALL DONE.")
+
+
+if __name__=="__main__":
+    print("TensorFlow:", tf.__version__)
+    main()

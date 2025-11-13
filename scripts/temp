@@ -1,75 +1,47 @@
-def find_close_pairs(trajs, dist_thresh, time_thresh, max_pairs):
-    """
-    Scan frames in time; for each time snapshot, keep only 'Vehicle' records,
-    then compute pairwise OBB distances and retain closest per pair over all time.
-    """
-    times = sorted({rec["t"] for arr in trajs.values() for rec in arr})
+def collect_trajectories(file_path):
+    trajs = {}
+    t0 = None
 
-    time_index = []
-    half = time_thresh * 0.5
-    for t in times:
-        snapshot = []
-        for oid, arr in trajs.items():
-            # nearest record within ±half
-            best = None; best_dt = 1e9
-            for rec in arr:
-                dt = abs(rec["t"] - t)
-                if dt < best_dt and dt <= half:
-                    best_dt = dt; best = rec
-            if best is not None and best["type"] == "Vehicle":  # vehicle-only HERE
-                snapshot.append(best)
-        time_index.append((t, snapshot))
+    ds = tf.data.TFRecordDataset(file_path, compression_type="")
+    for raw in ds:
+        frame = open_dataset.Frame()
+        frame.ParseFromString(raw.numpy())
+        t = frame.timestamp_micros * 1e-6
+        if t0 is None:
+            t0 = t
 
-    best_per_pair = {}  # (oid_i, oid_j) -> (d_min, t_at, rec_i, rec_j)
-    # Debug helpers
-    seen_any = False
-    for t, records in time_index:
-        if not records:
-            continue
-        # quick debug: per-snapshot vehicle count and min center distance
-        if len(records) >= 2:
-            # compute a fast min center-distance just for instrumentation
-            mins = []
-            for i, j in itertools.combinations(range(len(records)), 2):
-                a, b = records[i], records[j]
-                dx = a["cx"] - b["cx"]; dy = a["cy"] - b["cy"]
-                mins.append(math.hypot(dx, dy))
-            if mins:
-                dbg_min = min(mins)
-                # Only print occasionally to avoid spam
-                if dbg_min < dist_thresh * 3:
-                    print(f"[t={t:.3f}] vehicles={len(records)}, "
-                          f"min(center)≈{dbg_min:.2f} m")
+        # --- Detect which labels are present ---
+        labels = []
 
-        # true OBB distance check
-        for i, j in itertools.combinations(range(len(records)), 2):
-            a, b = records[i], records[j]
-            d = pair_distance(a, b)
-            if d < dist_thresh:
-                seen_any = True
-                key = tuple(sorted((a["id"], b["id"])))
-                prev = best_per_pair.get(key)
-                if (prev is None) or (d < prev[0]):
-                    best_per_pair[key] = (d, t, a, b)
+        if len(frame.laser_labels) > 0:
+            # primary 3D bounding boxes
+            for lab in frame.laser_labels:
+                labels.append(lab)
 
-    if not seen_any:
-        print("No Vehicle–Vehicle pairs found below threshold during scan.")
-        # As a hint, compute global min OBB distance among vehicles to guide thresholds
-        allD = []
-        for _, records in time_index:
-            for i, j in itertools.combinations(range(len(records)), 2):
-                a, b = records[i], records[j]
-                allD.append(pair_distance(a, b))
-        if allD:
-            print(f"Global min OBB distance among Vehicles ≈ {min(allD):.2f} m")
         else:
-            print("No time snapshots had ≥2 vehicles present within the time window.")
+            # fallback: CAMERA labels
+            for cam in frame.camera_labels:
+                for lab in cam.labels:
+                    labels.append(lab)
 
-    ranked = sorted(
-        (
-            {"oid_i": k[0], "oid_j": k[1], "d_min": v[0], "t_at": v[1], "rec_i": v[2], "rec_j": v[3]}
-            for k, v in best_per_pair.items()
-        ),
-        key=lambda x: x["d_min"]
-    )
-    return ranked[:max_pairs]
+        # --- Extract OBBs ---
+        for lab in labels:
+            name = label_type_name(lab.type)
+            box = lab.box
+            L, W, H = ensure_dims(name, box.length, box.width, box.height)
+            rec = {
+                "t": t,
+                "cx": box.center_x,
+                "cy": box.center_y,
+                "heading": box.heading,
+                "length": L,
+                "width": W,
+                "height": H,
+                "type": name,
+                "id": lab.id,
+            }
+            trajs.setdefault(lab.id, []).append(rec)
+
+    for oid in trajs:
+        trajs[oid].sort(key=lambda r: r["t"])
+    return trajs, t0 or 0.0
